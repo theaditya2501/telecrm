@@ -50,9 +50,9 @@ except Exception as e:
     db = None
 
 PROJECT_ID = "telecallercrm-45ec7"
-LEADS_PATH = f"artifacts/{PROJECT_ID}/public/data/leads"
+LEADS_PATH = "leads"
 USERS_PATH = "users"
-LOGS_PATH  = f"artifacts/{PROJECT_ID}/public/data/audit_logs"
+LOGS_PATH  = "audit_logs"
 
 PAGE_SIZE = 50  # leads per page in admin panel
 
@@ -159,7 +159,7 @@ def login():
     ck = f"user:{username}"
     ud = cache_get(ck)
     if ud is None:
-        refs = db.collection(USERS_PATH).where(filter=FieldFilter("username","==",username)).limit(1).get()
+        refs = db.collection(USERS_PATH).where("username", "==", username).limit(1).get()
         if not refs:
             return err("User not found", 404)
         ud = refs[0].to_dict()
@@ -204,12 +204,12 @@ def get_global_stats():
 
     try:
         total  = db.collection(LEADS_PATH).count().get()[0][0].value
-        done   = db.collection(LEADS_PATH).where(filter=FieldFilter("status","==","completed")).count().get()[0][0].value
-        noph   = db.collection(LEADS_PATH).where(filter=FieldFilter("phone","==","NO")).count().get()[0][0].value
+        done   = db.collection(LEADS_PATH).where("status", "==", "completed").count().get()[0][0].value
+        noph   = db.collection(LEADS_PATH).where("phone", "==", "NO").count().get()[0][0].value
 
         new_docs = (db.collection(LEADS_PATH)
-                      .where(filter=FieldFilter("status","==","new"))
-                      .where(filter=FieldFilter("assigned_to","==",None))
+                      .where("status", "==", "new")
+                      .where("assigned_to", "==", None)
                       .limit(5000).get())
         raw = sum(1 for d in new_docs
                   if not d.to_dict().get("scheduled_date")
@@ -243,10 +243,10 @@ def get_all_leads():
     try:
         if ph == 'no':
             query = (db.collection(LEADS_PATH)
-                       .where(filter=FieldFilter("phone","==","NO"))
-                       .where(filter=FieldFilter("assigned_to","==",None)))
-            if area: query = query.where(filter=FieldFilter("area","==",area))
-            if cat:  query = query.where(filter=FieldFilter("keyword","==",cat))
+                       .where("phone", "==", "NO")
+                       .where("assigned_to", "==", None))
+            if area: query = query.where("area", "==", area)
+            if cat:  query = query.where("keyword", "==", cat)
             offset = (page - 1) * PAGE_SIZE
             all_docs = query.limit(PAGE_SIZE + 1 + offset).get()
             docs_list = list(all_docs)[offset:]
@@ -254,11 +254,11 @@ def get_all_leads():
             leads = [{"id": d.id, **d.to_dict()} for d in docs_list[:PAGE_SIZE]]
         else:
             query = (db.collection(LEADS_PATH)
-                       .where(filter=FieldFilter("status","==","new"))
-                       .where(filter=FieldFilter("assigned_to","==",None)))
-            if area: query = query.where(filter=FieldFilter("area","==",area))
-            if cat:  query = query.where(filter=FieldFilter("keyword","==",cat))
-            if ph == 'yes': query = query.where(filter=FieldFilter("phone","!=","NO"))
+                       .where("status", "==", "new")
+                       .where("assigned_to", "==", None))
+            if area: query = query.where("area", "==", area)
+            if cat:  query = query.where("keyword", "==", cat)
+            if ph == 'yes': query = query.where("phone", "!=", "NO")
 
             docs = query.limit(PAGE_SIZE * 4).get()
 
@@ -328,15 +328,15 @@ def get_next_lead():
 
         # 1. Resume in-progress call
         in_prog = (db.collection(LEADS_PATH)
-                     .where(filter=FieldFilter("assigned_to","==",caller))
-                     .where(filter=FieldFilter("status","==","calling")).limit(1).get())
+                     .where("assigned_to", "==", caller)
+                     .where("status", "==", "calling").limit(1).get())
         if in_prog:
             return jsonify(_enrich(in_prog[0].id, in_prog[0].to_dict()))
 
         # 2. Admin/researcher pre-assigned lead
         pre = (db.collection(LEADS_PATH)
-                 .where(filter=FieldFilter("assigned_to","==",caller))
-                 .where(filter=FieldFilter("status","==","new")).limit(1).get())
+                 .where("assigned_to", "==", caller)
+                 .where("status", "==", "new").limit(1).get())
         if pre:
             pre[0].reference.update({"status":"calling"})
             return jsonify(_enrich(pre[0].id, pre[0].to_dict()))
@@ -427,7 +427,7 @@ def get_caller_assigned_leads():
         return err("Missing caller")
     # Single-field query only (no order_by) — avoids composite index requirement
     docs = (db.collection(LEADS_PATH)
-              .where(filter=FieldFilter("assigned_to","==",caller))
+              .where("assigned_to", "==", caller)
               .limit(200).get())
     leads = []
     for d in docs:
@@ -456,8 +456,8 @@ def get_transfer_stats():
 
     # Fetch all interested-disposition logs grouped by caller
     logs = (db.collection(LOGS_PATH)
-              .where(filter=FieldFilter("action","==","call_submission"))
-              .where(filter=FieldFilter("disposition","==","interested"))
+              .where("action", "==", "call_submission")
+              .where("disposition", "==", "interested")
               .get())
 
     stats = {}  # {caller: {total, leads: [{name, phone, date}]}}
@@ -486,8 +486,8 @@ def get_callbacks():
     caller = request.args.get("caller","").strip()
     if not caller: return err("Missing caller")
     docs = (db.collection(LEADS_PATH)
-              .where(filter=FieldFilter("assigned_to","==",caller))
-              .where(filter=FieldFilter("status","==","callback")).get())
+              .where("assigned_to", "==", caller)
+              .where("status", "==", "callback").get())
     return jsonify([{"id":d.id,**d.to_dict()} for d in docs])
 
 # ═══════════════════════════════════════════
@@ -499,8 +499,8 @@ def get_researcher_leads():
     if not researcher:
         return err("Missing researcher")
     docs = (db.collection(LEADS_PATH)
-              .where(filter=FieldFilter("assigned_to","==",researcher))
-              .where(filter=FieldFilter("phone","==","NO"))
+              .where("assigned_to", "==", researcher)
+              .where("phone", "==", "NO")
               .limit(200).get())
     leads = [_enrich(d.id, d.to_dict()) for d in docs]
     return jsonify(leads)
@@ -512,8 +512,8 @@ def get_researcher_completed():
     if not researcher:
         return err("Missing researcher")
     docs = (db.collection(LEADS_PATH)
-              .where(filter=FieldFilter("research_completed_by","==",researcher))
-              .where(filter=FieldFilter("status","==","research_done"))
+              .where("research_completed_by", "==", researcher)
+              .where("status", "==", "research_done")
               .limit(200).get())
     leads = [_enrich(d.id, d.to_dict()) for d in docs]
     return jsonify(leads)
@@ -605,7 +605,7 @@ def get_staff_full_stats():
 
     try:
         now   = datetime.now()
-        logs  = db.collection(LOGS_PATH).where(filter=FieldFilter("done_by","==",username)).get()
+        logs  = db.collection(LOGS_PATH).where("done_by", "==", username).get()
         ldata = sorted(
             [l.to_dict() for l in logs if l.to_dict().get('timestamp')],
             key=lambda x: x.get('timestamp', datetime.min)
@@ -665,7 +665,7 @@ def get_staff_pending_counts():
         return jsonify(cached)
 
     docs = (db.collection(LEADS_PATH)
-              .where(filter=FieldFilter("assigned_to", "!=", None))
+              .where("assigned_to", "!=", None)
               .get())
 
     counts = {}
@@ -698,15 +698,15 @@ def get_staff_summary():
         uname = ud.get('username','Unknown')
         if ud.get('role') == 'super_admin': continue
         cur = (db.collection(LEADS_PATH)
-                 .where(filter=FieldFilter("assigned_to","==",uname))
-                 .where(filter=FieldFilter("status","==","calling")).limit(1).get())
+                 .where("assigned_to", "==", uname)
+                 .where("status", "==", "calling").limit(1).get())
         summary[uname] = {
             "role":         ud.get('role'),
             "live_status":  cur[0].to_dict().get('name','Idle') if cur else "Idle",
             "today_calls":  0,"today_research":0
         }
 
-    for log in db.collection(LOGS_PATH).where(filter=FieldFilter("date","==",today)).get():
+    for log in db.collection(LOGS_PATH).where("date", "==", today).get():
         d = log.to_dict(); u = d.get('done_by')
         if u in summary:
             if d.get('action') == "call_submission": summary[u]["today_calls"]    += 1
@@ -746,7 +746,7 @@ def create_user():
     if role not in VALID_ROLES:
         return err(f"Invalid role. Choose from: {', '.join(VALID_ROLES)}")
 
-    if db.collection(USERS_PATH).where(filter=FieldFilter("username","==",uname)).limit(1).get():
+    if db.collection(USERS_PATH).where("username", "==", uname).limit(1).get():
         return err("Username already exists", 409)
 
     db.collection(USERS_PATH).add({
@@ -776,7 +776,7 @@ def delete_user(user_id):
 def get_interested_leads():
     cached = cache_get("interested_leads")
     if cached: return jsonify(cached)
-    docs   = db.collection(LEADS_PATH).where(filter=FieldFilter("disposition","==","interested")).get()
+    docs   = db.collection(LEADS_PATH).where("disposition", "==", "interested").get()
     result = [{"id":d.id,**d.to_dict()} for d in docs]
     cache_set("interested_leads", result, ttl=120)
     return jsonify(result)
