@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataResearch - CRM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family:'Plus Jakarta Sans',sans-serif; background:#f8fafc; }
+        .tab-active { color:#7c3aed; border-bottom:3px solid #7c3aed; }
+        .animate-in { animation:fadeUp .3s ease-out; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .lead-row:hover { background:#faf5ff; }
+        .lead-row.selected { background:#ede9fe; }
+    </style>
+</head>
+<body class="min-h-screen text-slate-900 pb-20">
+
+    <!-- Nav -->
+    <nav class="bg-white border-b border-slate-200 p-4 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-purple-600 p-2 rounded-xl text-white shadow-lg"><i class="fas fa-magnifying-glass"></i></div>
+                <span class="font-black text-xl tracking-tight uppercase">Data<span class="text-purple-600">Research</span></span>
+            </div>
+            <div class="flex items-center gap-5">
+                <div class="text-right">
+                    <div id="display-user" class="font-bold text-slate-800 text-sm">—</div>
+                    <div class="text-[10px] font-black text-purple-500 uppercase tracking-widest">Researcher</div>
+                </div>
+                <button onclick="logout()" class="w-10 h-10 bg-slate-100 text-slate-400 rounded-xl hover:bg-red-500 hover:text-white transition-all flex items-center justify-center">
+                    <i class="fas fa-power-off"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto p-6 md:p-10">
+
+        <!-- Stats row -->
+        <div class="grid grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-5 rounded-[1.5rem] border shadow-sm text-center">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">To Research</p>
+                <p id="stat-pending" class="text-3xl font-black text-amber-500 mt-1">—</p>
+            </div>
+            <div class="bg-white p-5 rounded-[1.5rem] border shadow-sm text-center">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Ready to Send</p>
+                <p id="stat-done" class="text-3xl font-black text-purple-600 mt-1">—</p>
+            </div>
+            <div class="bg-white p-5 rounded-[1.5rem] border shadow-sm text-center">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Found Today</p>
+                <p id="stat-today" class="text-3xl font-black text-emerald-600 mt-1">0</p>
+            </div>
+            <div class="bg-white p-5 rounded-[1.5rem] border shadow-sm text-center">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Telecallers</p>
+                <p id="stat-callers" class="text-3xl font-black text-slate-700 mt-1">—</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-8 border-b border-slate-200 px-1 mb-8">
+            <button onclick="switchTab('pending')" id="tab-pending" class="pb-4 font-black text-xs uppercase tracking-widest tab-active">
+                Assigned to Me <span id="badge-pending" class="ml-1 bg-amber-100 text-amber-700 text-[9px] font-black px-2 py-0.5 rounded-full">0</span>
+            </button>
+            <button onclick="switchTab('done')" id="tab-done" class="pb-4 font-black text-xs uppercase tracking-widest text-slate-400">
+                Completed <span id="badge-done" class="ml-1 bg-purple-100 text-purple-700 text-[9px] font-black px-2 py-0.5 rounded-full">0</span>
+            </button>
+        </div>
+
+        <!-- ── PENDING TAB ── -->
+        <div id="view-pending">
+
+            <!-- Empty state -->
+            <div id="pending-empty" class="hidden text-center py-32 bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
+                <div class="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-inbox text-slate-200 text-4xl"></i>
+                </div>
+                <h3 class="text-2xl font-black text-slate-400">No Leads Assigned</h3>
+                <p class="text-slate-300 font-bold mt-2 text-sm">Admin hasn't assigned any leads to you yet.</p>
+                <p class="text-xs text-amber-600 font-black uppercase tracking-wide mt-4">
+                    <i class="fas fa-info-circle mr-1"></i>Contact your admin to get leads assigned
+                </p>
+            </div>
+
+            <!-- Research card (shown when a lead is selected) -->
+            <div id="research-card" class="hidden animate-in mb-6">
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 border-l-8 border-l-purple-500">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <span class="bg-amber-100 text-amber-700 text-[10px] font-black px-3 py-1 rounded-full uppercase inline-block mb-3">
+                                Researching
+                            </span>
+                            <h2 id="target-name" class="text-3xl font-black text-slate-900 leading-tight">—</h2>
+                            <p id="target-info" class="text-slate-400 font-bold mt-1 text-sm">—</p>
+                        </div>
+                        <button onclick="closeResearchCard()" class="text-slate-300 hover:text-slate-500 text-2xl transition-colors">✕</button>
+                    </div>
+
+                    <!-- GMB Link — opens in new tab -->
+                    <div id="gmb-box" class="bg-indigo-50 p-5 rounded-2xl mb-6 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-white w-10 h-10 rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
+                                <i class="fab fa-google"></i>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-black text-indigo-400 uppercase">GMB Profile</p>
+                                <p id="gmb-url-display" class="font-bold text-indigo-900 text-sm truncate max-w-xs">—</p>
+                            </div>
+                        </div>
+                        <button id="gmb-btn" onclick="openGmb()"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-black text-sm transition-all">
+                            Open GMB ↗
+                        </button>
+                    </div>
+
+                    <!-- Form error -->
+                    <div id="form-error" class="hidden bg-rose-50 text-rose-600 text-sm font-bold px-4 py-3 rounded-2xl mb-4 flex items-center gap-2">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span id="form-error-text"></span>
+                    </div>
+
+                    <div class="flex gap-4 items-end">
+                        <div class="flex-1">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase ml-2 mb-2 tracking-widest">Phone Number Found</label>
+                            <input type="tel" id="found-phone" placeholder="e.g. +919820323138"
+                                class="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xl font-black text-slate-800 focus:border-purple-400 focus:ring-4 focus:ring-purple-50 transition-all"
+                                onkeydown="if(event.key==='Enter') submitResearch()">
+                        </div>
+                        <button onclick="submitResearch()" id="submit-btn"
+                            class="bg-slate-900 hover:bg-black text-white px-8 py-5 rounded-2xl font-black text-sm shadow-lg transition-all flex items-center gap-2 shrink-0">
+                            <i class="fas fa-check"></i> Mark Done
+                        </button>
+                        <button onclick="markUnresolvable()"
+                            class="bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 px-5 py-5 rounded-2xl font-black text-xs transition-all text-center shrink-0"
+                            title="Can't find this number anywhere">
+                            <i class="fas fa-ghost text-lg block mb-1"></i>
+                            <span class="text-[10px]">Not Findable</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leads table -->
+            <div id="pending-table-wrap" class="hidden bg-white rounded-[2.5rem] border shadow-sm overflow-hidden">
+                <div class="p-6 bg-slate-50 border-b flex justify-between items-center">
+                    <div>
+                        <h3 class="font-black text-slate-800 uppercase text-xs tracking-widest">Leads to Research</h3>
+                        <p class="text-[10px] text-slate-400 font-bold mt-1">Click a row to start researching that lead</p>
+                    </div>
+                    <button onclick="loadPending()" class="text-purple-600 font-black text-xs uppercase hover:text-purple-800">
+                        <i class="fas fa-sync mr-1"></i>Refresh
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm font-bold">
+                        <thead class="bg-slate-50 border-b">
+                            <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <th class="p-4">#</th>
+                                <th class="p-4">Business Name</th>
+                                <th class="p-4">Category</th>
+                                <th class="p-4">Area</th>
+                                <th class="p-4">GMB</th>
+                                <th class="p-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pending-list" class="divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── COMPLETED TAB ── -->
+        <div id="view-done" class="hidden">
+
+            <!-- Empty state -->
+            <div id="done-empty" class="hidden text-center py-32 bg-white rounded-[3rem] border-4 border-dashed border-slate-100">
+                <div class="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-check-double text-slate-200 text-4xl"></i>
+                </div>
+                <h3 class="text-2xl font-black text-slate-400">No Completed Leads</h3>
+                <p class="text-slate-300 font-bold mt-2 text-sm">Research some leads first — they'll appear here ready to send.</p>
+            </div>
+
+            <!-- Batch assign bar (shown when items selected) -->
+            <div id="batch-bar" class="hidden bg-purple-600 text-white rounded-2xl px-6 py-4 mb-5 flex items-center justify-between animate-in">
+                <span class="font-black text-sm"><span id="selected-count">0</span> leads selected</span>
+                <div class="flex items-center gap-4">
+                    <select id="assign-to" class="p-2 rounded-xl border-0 font-bold text-slate-800 text-sm outline-none">
+                        <option value="">— Select telecaller —</option>
+                    </select>
+                    <button onclick="batchAssign()" id="batch-btn"
+                        class="bg-white text-purple-700 hover:bg-purple-50 px-5 py-2 rounded-xl font-black text-sm transition-all">
+                        <i class="fas fa-paper-plane mr-1"></i> Send to Caller
+                    </button>
+                    <button onclick="deselectAll()" class="text-purple-200 hover:text-white font-black text-xs">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Completed table -->
+            <div id="done-table-wrap" class="hidden bg-white rounded-[2.5rem] border shadow-sm overflow-hidden">
+                <div class="p-6 bg-slate-50 border-b flex justify-between items-center">
+                    <div>
+                        <h3 class="font-black text-slate-800 uppercase text-xs tracking-widest">Ready to Send</h3>
+                        <p class="text-[10px] text-slate-400 font-bold mt-1">Select leads then choose a telecaller to send them</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="selectAll()" class="text-purple-600 font-black text-xs uppercase hover:text-purple-800">Select All</button>
+                        <button onclick="loadCompleted()" class="text-purple-600 font-black text-xs uppercase hover:text-purple-800">
+                            <i class="fas fa-sync mr-1"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm font-bold">
+                        <thead class="bg-slate-50 border-b">
+                            <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <th class="p-4"><input type="checkbox" id="check-all" onchange="toggleAllDone(this.checked)" class="w-4 h-4 rounded accent-purple-600"></th>
+                                <th class="p-4">Business Name</th>
+                                <th class="p-4">Phone Found</th>
+                                <th class="p-4">Category</th>
+                                <th class="p-4">Area</th>
+                                <th class="p-4">GMB</th>
+                            </tr>
+                        </thead>
+                        <tbody id="done-list" class="divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-8 right-6 text-white px-6 py-4 rounded-2xl font-black shadow-2xl text-sm z-50 animate-in">
+        <i id="toast-icon" class="fas fa-check-circle mr-2"></i><span id="toast-text"></span>
+    </div>
+
+    <script>
+    const API  = "/api";
+    const user = localStorage.getItem('crm_user');
+    const role = localStorage.getItem('crm_role');
+
+    if (!user || role !== 'researcher') { localStorage.clear(); window.location.href='/'; }
+    document.getElementById('display-user').innerText = user;
+
+    let currentLead   = null;   // lead being researched right now
+    let pendingLeads  = [];     // leads still needing phone
+    let completedLeads = [];    // leads with phone found, not yet sent
+    let selectedIds   = new Set();
+    let foundToday    = 0;
+    let currentGmbUrl = '';
+    let telecallers   = [];
+
+    // ── Init ──────────────────────────────────────
+    async function init() {
+        try {
+            const [usersRes] = await Promise.all([fetch(`${API}/admin/users`)]);
+            const users = await usersRes.json();
+            telecallers = users.filter(u => u.role === 'telecaller');
+            document.getElementById('stat-callers').innerText = telecallers.length;
+            populateCallerSelect();
+        } catch(e) {}
+        await Promise.all([loadPending(), loadCompleted()]);
+    }
+
+    function populateCallerSelect() {
+        document.getElementById('assign-to').innerHTML =
+            '<option value="">— Select telecaller —</option>' +
+            telecallers.map(c => `<option value="${c.username}">${c.username}</option>`).join('');
+    }
+
+    // ── Tab switching ────────────────────────────
+    function switchTab(t) {
+        ['pending','done'].forEach(x => {
+            document.getElementById(`view-${x}`).classList.toggle('hidden', t!==x);
+            document.getElementById(`tab-${x}`).classList.toggle('tab-active', t===x);
+            document.getElementById(`tab-${x}`).classList.toggle('text-slate-400', t!==x);
+        });
+        if (t === 'done') loadCompleted();
+    }
+
+    // ── Load pending leads ────────────────────────
+    async function loadPending() {
+        try {
+            const res  = await fetch(`${API}/researcher/my-leads?researcher=${user}`);
+            const data = await res.json();
+            pendingLeads = Array.isArray(data) ? data : [];
+
+            document.getElementById('stat-pending').innerText = pendingLeads.length;
+            document.getElementById('badge-pending').innerText = pendingLeads.length;
+
+            if (!pendingLeads.length) {
+                document.getElementById('pending-empty').classList.remove('hidden');
+                document.getElementById('pending-table-wrap').classList.add('hidden');
+                return;
+            }
+            document.getElementById('pending-empty').classList.add('hidden');
+            document.getElementById('pending-table-wrap').classList.remove('hidden');
+            renderPendingTable();
+        } catch(e) {
+            document.getElementById('pending-empty').classList.remove('hidden');
+        }
+    }
+
+    function renderPendingTable() {
+        document.getElementById('pending-list').innerHTML = pendingLeads.map((l, i) => `
+            <tr class="lead-row cursor-pointer transition-colors ${currentLead && currentLead.id===l.id ? 'selected' : ''}"
+                onclick="selectLead('${l.id}')">
+                <td class="p-4 text-slate-300 font-bold text-[10px]">${i+1}</td>
+                <td class="p-4">
+                    <div class="font-black text-slate-800">${escHtml(l.name||'—')}</div>
+                </td>
+                <td class="p-4">
+                    <span class="text-[9px] bg-slate-100 text-slate-500 font-black px-2 py-1 rounded uppercase">${escHtml(l.keyword||'—')}</span>
+                </td>
+                <td class="p-4">
+                    <span class="text-[9px] bg-indigo-50 text-indigo-500 font-black px-2 py-1 rounded uppercase">${escHtml(l.area||'—')}</span>
+                </td>
+                <td class="p-4">
+                    ${(l.gmb_link || l.gmbLink || l.gmb || l.link)
+                        ? `<button onclick="event.stopPropagation(); window.open(${JSON.stringify(l.gmb_link || l.gmbLink || l.gmb || l.link)}, '_blank', 'noopener,noreferrer')"
+                              class="bg-slate-900 text-white px-3 py-1.5 rounded-lg font-black text-[9px] hover:bg-indigo-700 transition-colors">
+                              <i class="fab fa-google mr-1"></i>GMB
+                           </button>`
+                        : '<span class="text-slate-200 text-[9px]">No link</span>'}
+                </td>
+                <td class="p-4">
+                    <button onclick="event.stopPropagation(); selectLead('${l.id}')"
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase transition-colors">
+                        <i class="fas fa-search mr-1"></i>Research
+                    </button>
+                </td>
+            </tr>`).join('');
+    }
+
+    // ── Select a lead to research ─────────────────
+    function selectLead(id) {
+        currentLead = pendingLeads.find(l => l.id === id);
+        if (!currentLead) return;
+
+        // Handle the scraper's 'link' field first, then fall back to gmb_link / gmbLink
+        currentGmbUrl = currentLead.link || currentLead.gmb_link || currentLead.gmbLink || currentLead.gmb || currentLead.link || '';
+
+        document.getElementById('target-name').innerText  = currentLead.name || '—';
+        document.getElementById('target-info').innerText  = `${currentLead.keyword||'—'} • ${currentLead.area||'—'}`;
+        document.getElementById('gmb-url-display').innerText = currentGmbUrl
+            ? currentGmbUrl.replace('https://','').substring(0, 50) + (currentGmbUrl.length > 50 ? '…' : '')
+            : 'No GMB link in data';
+        document.getElementById('found-phone').value = '';
+        document.getElementById('form-error').classList.add('hidden');
+        document.getElementById('research-card').classList.remove('hidden');
+
+        // GMB button state
+        const gmbBtn = document.getElementById('gmb-btn');
+        if (currentGmbUrl) {
+            gmbBtn.disabled = false;
+            gmbBtn.className = 'bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-black text-sm transition-all';
+            gmbBtn.innerHTML = 'Open GMB ↗';
+        } else {
+            gmbBtn.disabled = true;
+            gmbBtn.className = 'bg-slate-200 text-slate-400 px-5 py-2.5 rounded-xl font-black text-sm cursor-not-allowed';
+            gmbBtn.innerHTML = 'No Link';
+        }
+
+        // Highlight selected row
+        renderPendingTable();
+        document.getElementById('found-phone').focus();
+
+        // Scroll to card
+        document.getElementById('research-card').scrollIntoView({behavior:'smooth', block:'start'});
+    }
+
+    function openGmb() {
+        const url = currentGmbUrl || (currentLead && (currentLead.gmb_link || currentLead.gmbLink || currentLead.gmb || currentLead.link));
+        if (url) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        } else {
+            showToast("No GMB link available for this lead.", "bg-slate-700", "fa-info-circle");
+        }
+    }
+
+    function closeResearchCard() {
+        currentLead = null;
+        document.getElementById('research-card').classList.add('hidden');
+        renderPendingTable();
+    }
+
+    // ── Submit research ───────────────────────────
+    async function submitResearch() {
+        if (!currentLead) return;
+        const phone  = document.getElementById('found-phone').value.trim().replace(/\s+/g,'');
+        const errDiv = document.getElementById('form-error');
+        const errTxt = document.getElementById('form-error-text');
+        errDiv.classList.add('hidden');
+
+        if (!phone || !/^\+?[\d\-]{7,15}$/.test(phone)) {
+            errTxt.innerText = "Enter a valid phone number (7–15 digits).";
+            errDiv.classList.remove('hidden'); return;
+        }
+
+        const btn = document.getElementById('submit-btn');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+        btn.disabled  = true;
+
+        try {
+            const res = await fetch(`${API}/updater/update-lead`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({id:currentLead.id, phone, username:user})
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Server error");
+
+            foundToday++;
+            document.getElementById('stat-today').innerText = foundToday;
+
+            // Remove from pending list
+            pendingLeads = pendingLeads.filter(l => l.id !== currentLead.id);
+            currentLead  = null;
+            document.getElementById('research-card').classList.add('hidden');
+
+            document.getElementById('stat-pending').innerText = pendingLeads.length;
+            document.getElementById('badge-pending').innerText = pendingLeads.length;
+
+            if (!pendingLeads.length) {
+                document.getElementById('pending-empty').classList.remove('hidden');
+                document.getElementById('pending-table-wrap').classList.add('hidden');
+            } else {
+                renderPendingTable();
+            }
+
+            showToast("Phone saved! Lead moved to Completed tab.");
+            // Refresh completed count
+            loadCompleted();
+
+        } catch(e) {
+            errTxt.innerText = e.message || "Failed to save. Try again.";
+            errDiv.classList.remove('hidden');
+        }
+
+        btn.innerHTML = '<i class="fas fa-check mr-2"></i>Mark Done';
+        btn.disabled  = false;
+    }
+
+    // ── Mark unresolvable ─────────────────────────
+    async function markUnresolvable() {
+        if (!currentLead) return;
+        if (!confirm(`Mark "${currentLead.name}" as not findable?\nIt will be skipped in future.`)) return;
+
+        try {
+            await fetch(`${API}/updater/update-lead`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({id:currentLead.id, phone:'UNRESOLVABLE', username:user})
+            });
+            pendingLeads = pendingLeads.filter(l => l.id !== currentLead.id);
+            currentLead  = null;
+            document.getElementById('research-card').classList.add('hidden');
+            document.getElementById('stat-pending').innerText = pendingLeads.length;
+            document.getElementById('badge-pending').innerText = pendingLeads.length;
+
+            if (!pendingLeads.length) {
+                document.getElementById('pending-empty').classList.remove('hidden');
+                document.getElementById('pending-table-wrap').classList.add('hidden');
+            } else {
+                renderPendingTable();
+            }
+            showToast("Marked as not findable.", "bg-slate-700", "fa-ghost");
+        } catch(e) {
+            showToast("Failed to mark. Try again.", "bg-rose-600", "fa-exclamation-circle");
+        }
+    }
+
+    // ── Load completed leads ──────────────────────
+    async function loadCompleted() {
+        try {
+            const res  = await fetch(`${API}/researcher/completed-leads?researcher=${user}`);
+            const data = await res.json();
+            completedLeads = Array.isArray(data) ? data : [];
+
+            document.getElementById('stat-done').innerText   = completedLeads.length;
+            document.getElementById('badge-done').innerText  = completedLeads.length;
+
+            if (!completedLeads.length) {
+                document.getElementById('done-empty').classList.remove('hidden');
+                document.getElementById('done-table-wrap').classList.add('hidden');
+                document.getElementById('batch-bar').classList.add('hidden');
+                return;
+            }
+            document.getElementById('done-empty').classList.add('hidden');
+            document.getElementById('done-table-wrap').classList.remove('hidden');
+            renderCompletedTable();
+        } catch(e) {}
+    }
+
+    function renderCompletedTable() {
+        document.getElementById('done-list').innerHTML = completedLeads.map(l => `
+            <tr class="lead-row transition-colors ${selectedIds.has(l.id) ? 'selected' : ''}">
+                <td class="p-4">
+                    <input type="checkbox" value="${l.id}" ${selectedIds.has(l.id)?'checked':''}
+                        onchange="toggleSelect('${l.id}', this.checked)"
+                        class="w-4 h-4 rounded accent-purple-600">
+                </td>
+                <td class="p-4 font-black text-slate-800">${escHtml(l.name||'—')}</td>
+                <td class="p-4">
+                    <span class="text-emerald-700 font-black text-sm">${escHtml(l.phone||'—')}</span>
+                </td>
+                <td class="p-4">
+                    <span class="text-[9px] bg-slate-100 text-slate-500 font-black px-2 py-1 rounded uppercase">${escHtml(l.keyword||'—')}</span>
+                </td>
+                <td class="p-4">
+                    <span class="text-[9px] bg-indigo-50 text-indigo-500 font-black px-2 py-1 rounded uppercase">${escHtml(l.area||'—')}</span>
+                </td>
+                <td class="p-4">
+                    ${(l.gmb_link || l.gmbLink || l.gmb || l.link)
+                        ? `<button onclick="window.open(${JSON.stringify(l.gmb_link || l.gmbLink || l.gmb || l.link)}, '_blank', 'noopener,noreferrer')"
+                              class="bg-slate-900 text-white px-3 py-1.5 rounded-lg font-black text-[9px] hover:bg-indigo-700 transition-colors">
+                              <i class="fab fa-google mr-1"></i>GMB
+                           </button>`
+                        : '<span class="text-slate-200 text-[9px]">No link</span>'}
+                </td>
+            </tr>`).join('');
+    }
+
+    // ── Selection helpers ─────────────────────────
+    function toggleSelect(id, checked) {
+        checked ? selectedIds.add(id) : selectedIds.delete(id);
+        updateBatchBar();
+        // update row highlight without full re-render
+        completedLeads.forEach(l => {
+            // handled via re-render
+        });
+        renderCompletedTable();
+    }
+
+    function toggleAllDone(checked) {
+        selectedIds = checked ? new Set(completedLeads.map(l => l.id)) : new Set();
+        updateBatchBar();
+        renderCompletedTable();
+    }
+
+    function selectAll() {
+        selectedIds = new Set(completedLeads.map(l => l.id));
+        updateBatchBar();
+        renderCompletedTable();
+    }
+
+    function deselectAll() {
+        selectedIds = new Set();
+        updateBatchBar();
+        renderCompletedTable();
+        document.getElementById('check-all').checked = false;
+    }
+
+    function updateBatchBar() {
+        const bar = document.getElementById('batch-bar');
+        document.getElementById('selected-count').innerText = selectedIds.size;
+        selectedIds.size > 0 ? bar.classList.remove('hidden') : bar.classList.add('hidden');
+    }
+
+    // ── Batch assign to telecaller ────────────────
+    async function batchAssign() {
+        const target = document.getElementById('assign-to').value;
+        if (!target) {
+            showToast("Please select a telecaller first.", "bg-rose-600", "fa-exclamation-circle"); return;
+        }
+        if (!selectedIds.size) {
+            showToast("Select at least one lead.", "bg-rose-600", "fa-exclamation-circle"); return;
+        }
+
+        const btn = document.getElementById('batch-btn');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Sending...';
+        btn.disabled  = true;
+
+        try {
+            const res = await fetch(`${API}/researcher/batch-assign`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    lead_ids: [...selectedIds],
+                    target_user: target,
+                    researcher: user
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Server error");
+
+            showToast(`${data.assigned} leads sent to ${target}!`, "bg-emerald-600", "fa-paper-plane");
+            selectedIds = new Set();
+            document.getElementById('check-all').checked = false;
+            updateBatchBar();
+            await loadCompleted();
+
+        } catch(e) {
+            showToast(e.message || "Failed to assign. Try again.", "bg-rose-600", "fa-exclamation-circle");
+        }
+
+        btn.innerHTML = '<i class="fas fa-paper-plane mr-1"></i> Send to Caller';
+        btn.disabled  = false;
+    }
+
+    // ── Helpers ───────────────────────────────────
+    function escHtml(s) {
+        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showToast(msg, bg="bg-emerald-600", icon="fa-check-circle") {
+        const t = document.getElementById('toast');
+        document.getElementById('toast-icon').className = `fas ${icon} mr-2`;
+        document.getElementById('toast-text').innerText = msg;
+        t.className = `fixed bottom-8 right-6 text-white px-6 py-4 rounded-2xl font-black shadow-2xl text-sm z-50 animate-in ${bg}`;
+        t.classList.remove('hidden');
+        setTimeout(() => t.classList.add('hidden'), 3500);
+    }
+
+    async function logout() {
+        try {
+            await fetch(`${API}/logout`,{method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({username:user})});
+        } catch(e){}
+        localStorage.clear(); window.location.href='/';
+    }
+
+    init();
+    </script>
+</body>
+</html>

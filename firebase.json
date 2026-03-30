@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "telecallercrm-45ec7",
+  "private_key_id": "a43b75f1a6584b762df9b0eb4c0d2c2c75114831",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDKW/1A5H2jJdSJ\ngN8n4n415lrNQtPrEXcnbmHeYo7/V+dn5vW+PzWyUA65GCCy5lXUh3UWbQTSenXV\nP9zA8Q5GFIMitssDYi5SqKkwn7qc1IZ1/ulImyHcbugLwsCGskxL+lXvROHuPYvQ\nXJicrZvLs3xyE9g3jUyiqLLKn6gdmpfn/xsD1fCCeqf8nH207sVMq6avPrgPJBmZ\no/RRssL4d5R9bnu/Ju9qqHaXEfdb/qKOj9+i5HM2z3qsnaYZvXUih+c7eKB1wi5u\nToGKzjdwkrKA46SoHzxoHA7JgazvnYMP76OrNsJBZpo9WVMi83ONqEcFxzz1OQnE\nSIjaRxnvAgMBAAECggEADN1tS99a53DjwrwpM8lv+bBD7JHHlEW/fAfF/BPrAGvP\nv+jMjcRJ/ySc0wKoLYd8RG86L+tNZ642aJDPUYrhu+3Y6m+Rl4z54fJsEzXMcOUI\nCV9j6GRIclGwufKvN8EFHb10EiqgbHuINH52i1t0MK6gBkahs+JtUVgFSeF9mCgb\nTlITcbyZEwspldzkwWpFXtaWEZUS0Q64X3OqagPCmM2Sc/0F3Lb0KTGe0XLgipp7\nrVP9utS20yCzO/UNue0u9d0gRJcvDBLUD3qPj9FoOcme2AMMciAtL5qC4jMpa6N/\nG3/ESs2aFyNKESfZvSSySru6e9pWt3TdPDhPM7vSbQKBgQD9Oa/+H9M966bGzf7v\n76YR1sHzPWgoGoTFSQHWD/tj0w6NyfftmJvt4OCAIBThsz5KGsJLiWgDalxWMC/+\nbIvPu8MIgJAeHqiB93UARhmwsk/14nYEVHUxb014JJThn2sug2PIGudP9gWgFn4g\nNegKndPywNCxTrYgfMPgv6vq7QKBgQDMk56aZf1NYn6uhW9Xf3vVlc3fjM15nPjy\njKkCCyUKIvkP8cRpfEwYuUJDYvJFdm2wLE3todSQ/L31CvUIPA2d9sjqyk1zXPnG\n3ZrM6VeXiScz1v4cXlElrqJCLblMSxI9//lEz3Lvn1ENDHjGS8r185tb0mI/90XD\npARenbkQywKBgQCjeM5Iu7rfSnXL+cgOlSMceQuUP5wx54y2376ztnWPp/zJRA0t\n8UsYcgf8LrnMSq53oHa11Oq06cDaUxlooiJP5OKvZm+jQh9+Z4W8u4RyMWq1TZDq\nkqtlUnksilEipovG50NPNy8Ey8ot4tdha+t0jxb4q8kN7cZdiq3ZNWOCsQKBgQC4\nM8tBdsfnX+J1PgyNGmrkXCitO1jgQekebGzZPDOztt3P739NA/B46oaxqmw/A22s\njZf1ehuuGQTpmV4cdgZEz6sFTfcDAxqcZ3k1PH30Iji8Qr83x+0FIwNS11zbR1U7\nojpOLQRuomMWfr5YvnIXl6uxt/NjaUDV8d9FWnsClQKBgDYmb9cdMtvyJDMHx7nO\nyVS+L60n/d+q0wgCYIpXXr1Y2hdLGQfZce359XtGjqwNzRysqlyFM7fvsfSCA0yv\nzyJBBEfv+GulArIBKKrBQyHt8sTIM3wGVxsZlYhAeNo6Ej8RoPC/cDpufQqDeU9R\noxVm4tb96y6apc+skmHY1RZc\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@telecallercrm-45ec7.iam.gserviceaccount.com",
+  "client_id": "114807940047059683963",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40telecallercrm-45ec7.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Owner Dashboard - CRM Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; }
+        .tab-btn { padding-bottom:1rem; font-weight:800; color:#94a3b8; border-bottom:3px solid transparent; transition:all .2s; }
+        .tab-btn.active { color:#4f46e5; border-bottom-color:#4f46e5; }
+        .stat-card { transition:all .3s; }
+        .stat-card:hover { transform:translateY(-4px); box-shadow:0 20px 40px -12px rgba(0,0,0,.1); }
+        .animate-in { animation:fadeUp .35s ease-out; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        #toast { transition: opacity .3s; }
+    </style>
+</head>
+<body class="min-h-screen pb-24">
+
+    <nav class="bg-white border-b px-8 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 p-2 rounded-xl text-white font-black shadow-lg">CRM</div>
+            <span class="font-black text-xl tracking-tighter uppercase">Admin<span class="text-indigo-600">Pro</span></span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="text-xs font-black text-slate-400 uppercase" id="admin-name"></span>
+            <button onclick="logout()" class="text-slate-400 hover:text-red-500 font-bold transition-colors text-sm">
+                <i class="fas fa-sign-out-alt mr-1"></i>Logout
+            </button>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto p-6 md:p-8">
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-6 rounded-[2rem] border shadow-sm stat-card text-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Leads</p>
+                <h4 id="stat-total" class="text-4xl font-black mt-1 text-slate-800">—</h4>
+            </div>
+            <div class="bg-white p-6 rounded-[2rem] border-l-4 border-l-blue-500 shadow-sm stat-card text-center">
+                <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Raw Pool</p>
+                <h4 id="stat-new" class="text-4xl font-black text-blue-600 mt-1">—</h4>
+            </div>
+            <div class="bg-white p-6 rounded-[2rem] border shadow-sm stat-card text-center">
+                <p class="text-[10px] font-black text-amber-500 uppercase tracking-widest">No Phone</p>
+                <h4 id="stat-res" class="text-4xl font-black text-amber-600 mt-1">—</h4>
+            </div>
+            <div class="bg-white p-6 rounded-[2rem] border-l-4 border-l-emerald-500 shadow-sm stat-card text-center">
+                <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Completed</p>
+                <h4 id="stat-done" class="text-4xl font-black text-emerald-600 mt-1">—</h4>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-8 border-b border-slate-200 mb-8 overflow-x-auto px-1">
+            <button onclick="switchTab('leads')"      id="btn-leads"      class="tab-btn active text-xs uppercase tracking-widest whitespace-nowrap">Lead Pool</button>
+            <button onclick="switchTab('interested')" id="btn-interested" class="tab-btn text-xs uppercase tracking-widest text-emerald-600 whitespace-nowrap">Interested Clients</button>
+            <button onclick="switchTab('insights')"   id="btn-insights"   class="tab-btn text-xs uppercase tracking-widest whitespace-nowrap">Telecaller Insights</button>
+            <button onclick="switchTab('staff')"      id="btn-staff"      class="tab-btn text-xs uppercase tracking-widest whitespace-nowrap">Staff Management</button>
+        </div>
+
+        <!-- ── TAB: LEAD POOL ── -->
+        <section id="tab-leads" class="space-y-5">
+            <!-- Filters -->
+            <div class="bg-white p-5 rounded-[2rem] border shadow-sm grid grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Area</label>
+                    <select id="f-area" class="w-full mt-1 p-3 bg-slate-50 border rounded-xl font-bold text-xs outline-none">
+                        <option value="">All Areas</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Category</label>
+                    <select id="f-cat" class="w-full mt-1 p-3 bg-slate-50 border rounded-xl font-bold text-xs outline-none">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Phone</label>
+                    <select id="f-phone" class="w-full mt-1 p-3 bg-slate-50 border rounded-xl font-bold text-xs outline-none">
+                        <option value="all">All</option>
+                        <option value="yes">With Phone</option>
+                        <option value="no">No Phone</option>
+                    </select>
+                </div>
+                <button onclick="loadLeads(1)" class="col-span-1 bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold text-xs shadow-md hover:bg-indigo-700 transition-colors">
+                    <i class="fas fa-filter mr-1"></i>Apply
+                </button>
+                <button onclick="refreshStats()" class="bg-slate-100 text-slate-600 px-4 py-3 rounded-xl font-bold text-xs hover:bg-slate-200 transition-colors">
+                    <i class="fas fa-sync mr-1"></i>Refresh Stats
+                </button>
+            </div>
+
+            <!-- Table -->
+            <div class="bg-white rounded-[2rem] border shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b bg-slate-50/50 flex justify-between items-center">
+                    <span id="leads-count-label" class="text-xs font-black text-slate-400 uppercase">Loading...</span>
+                    <div id="leads-spinner" class="hidden">
+                        <i class="fas fa-spinner fa-spin text-indigo-500"></i>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm font-bold">
+                        <thead class="bg-slate-50 border-b">
+                            <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <th class="p-5 w-12"><input type="checkbox" id="select-all-cb" onclick="toggleAll(this.checked)" class="w-4 h-4"></th>
+                                <th class="p-4">Business</th>
+                                <th class="p-4">Phone</th>
+                                <th class="p-4">Assigned</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4">GMB</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lead-list" class="divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
+                <!-- Server-side pagination -->
+                <div class="p-5 border-t bg-slate-50/30 flex justify-between items-center flex-wrap gap-3">
+                    <div class="flex gap-2 items-center">
+                        <button id="btn-prev" onclick="loadLeads(currentPage-1)"
+                            class="px-4 py-2 bg-white border rounded-xl text-xs font-black disabled:opacity-30 hover:bg-indigo-50 transition-colors"
+                            disabled>← Prev</button>
+                        <span id="page-label" class="text-xs font-black text-slate-500 px-2">Page 1</span>
+                        <button id="btn-next" onclick="loadLeads(currentPage+1)"
+                            class="px-4 py-2 bg-white border rounded-xl text-xs font-black disabled:opacity-30 hover:bg-indigo-50 transition-colors"
+                            disabled>Next →</button>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-300">50 leads per page • server-side</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── TAB: INTERESTED ── -->
+        <section id="tab-interested" class="hidden space-y-4">
+            <div class="bg-white rounded-[2rem] border shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b bg-slate-50/50">
+                    <span class="text-xs font-black text-slate-400 uppercase">Interested Pipeline</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm font-bold">
+                        <thead class="bg-slate-50 border-b">
+                            <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <th class="p-5">Client Info</th>
+                                <th class="p-5">Staff Note</th>
+                                <th class="p-5">Admin Remarks</th>
+                                <th class="p-5">Pipeline Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="interested-list" class="divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── TAB: INSIGHTS ── -->
+        <section id="tab-insights" class="hidden space-y-8">
+            <div id="live-staff-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+
+            <div id="staff-detail-view" class="hidden space-y-8 animate-in">
+                <div class="bg-indigo-600 p-8 rounded-[2.5rem] text-white shadow-2xl flex flex-wrap justify-between items-center gap-6">
+                    <div>
+                        <h3 id="detail-user-name" class="text-4xl font-black tracking-tighter">—</h3>
+                        <div class="flex flex-wrap gap-4 mt-2">
+                            <span class="bg-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase">Shift Metrics IST</span>
+                            <span id="shift-start" class="text-xs font-bold">Login: —</span>
+                            <span id="shift-end"   class="text-xs font-bold">Logout: —</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <input type="date" id="dd-date" onchange="refreshCurrentStaffDetail()"
+                            class="p-3 rounded-2xl text-slate-800 font-bold outline-none text-sm">
+                        <button onclick="closeDetail()" class="bg-white/20 p-3 rounded-2xl hover:bg-white/30 transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-3 space-y-4">
+                        <div class="p-6 bg-white rounded-3xl border shadow-sm border-t-4 border-emerald-500">
+                            <p class="text-[10px] font-black text-slate-400 uppercase mb-4">This Month</p>
+                            <div class="space-y-4">
+                                <div><p class="text-[10px] text-slate-400 font-bold">Calls</p><p id="m-calls" class="text-3xl font-black">0</p></div>
+                                <div><p class="text-[10px] text-emerald-500 font-bold">Interested</p><p id="m-interest" class="text-3xl font-black text-emerald-600">0</p></div>
+                            </div>
+                        </div>
+                        <div class="p-6 bg-white rounded-3xl border shadow-sm border-t-4 border-indigo-500">
+                            <p class="text-[10px] font-black text-slate-400 uppercase mb-4">All Time</p>
+                            <div class="space-y-4">
+                                <div><p class="text-[10px] text-slate-400 font-bold">Total Calls</p><p id="life-calls" class="text-2xl font-black">0</p></div>
+                                <div><p class="text-[10px] text-indigo-500 font-bold">Leads Closed</p><p id="life-done" class="text-2xl font-black">0</p></div>
+                            </div>
+                        </div>
+                        <div class="p-6 bg-white rounded-3xl border shadow-sm border-t-4 border-teal-500">
+                            <p class="text-[10px] font-black text-slate-400 uppercase mb-3">Leads Transferred</p>
+                            <p id="transfer-count" class="text-4xl font-black text-teal-600 mb-1">0</p>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase">Total interested leads sent to pipeline</p>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-9 space-y-6">
+                        <div class="bg-white p-8 rounded-[2rem] border shadow-sm">
+                            <h5 class="text-[10px] font-black text-slate-400 uppercase mb-5">Productivity Trend</h5>
+                            <canvas id="performanceChart" height="100"></canvas>
+                        </div>
+                        <div class="bg-white rounded-[2rem] border shadow-sm overflow-hidden">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 border-b">
+                                    <tr class="text-[10px] font-black text-slate-400 uppercase">
+                                        <th class="p-4 w-10 text-center">#</th>
+                                        <th class="p-4">Time</th>
+                                        <th class="p-4">Business</th>
+                                        <th class="p-4">Result</th>
+                                        <th class="p-4">Comment</th>
+                                        <th class="p-4">Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detail-timeline-body" class="divide-y divide-slate-50 text-slate-700"></tbody>
+                            </table>
+                        </div>
+
+                        <!-- Transferred Leads Panel -->
+                        <div id="transferred-panel" class="bg-white rounded-[2rem] border shadow-sm overflow-hidden">
+                            <div class="px-6 py-4 border-b bg-teal-50 flex justify-between items-center">
+                                <div>
+                                    <span class="text-xs font-black text-teal-700 uppercase">Leads Transferred to Pipeline</span>
+                                    <p class="text-[9px] text-teal-600 font-bold mt-0.5">All leads this telecaller marked as Interested</p>
+                                </div>
+                                <span id="transferred-count-badge" class="bg-teal-600 text-white text-xs font-black px-3 py-1 rounded-full">0</span>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-slate-50 border-b">
+                                        <tr class="text-[10px] font-black text-slate-400 uppercase">
+                                            <th class="p-4 w-8 text-center">#</th>
+                                            <th class="p-4">Business Name</th>
+                                            <th class="p-4">Phone</th>
+                                            <th class="p-4">Date</th>
+                                            <th class="p-4">Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transferred-list" class="divide-y divide-slate-50 text-slate-700"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── TAB: STAFF ── -->
+        <section id="tab-staff" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-8 rounded-[2rem] border shadow-sm h-fit">
+                <h3 class="font-black text-lg mb-6">Add Team Member</h3>
+                <div id="staff-err" class="hidden bg-rose-50 text-rose-600 text-xs font-bold px-4 py-3 rounded-xl mb-4"></div>
+                <div id="staff-ok"  class="hidden bg-emerald-50 text-emerald-700 text-xs font-bold px-4 py-3 rounded-xl mb-4"></div>
+                <div class="space-y-3">
+                    <input id="nu-name" placeholder="Username (letters, numbers, _)"
+                        class="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold text-sm">
+                    <input id="nu-pass" type="password" placeholder="Password (min 6 chars)"
+                        class="w-full p-4 bg-slate-50 border rounded-2xl outline-none font-bold text-sm">
+                    <select id="nu-role" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold text-sm">
+                        <option value="telecaller">Telecaller</option>
+                        <option value="researcher">Researcher</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button onclick="createUser()"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl shadow-lg transition-colors">
+                        <i class="fas fa-user-plus mr-2"></i>Onboard Staff
+                    </button>
+                </div>
+            </div>
+            <div class="lg:col-span-2 bg-white rounded-[2rem] border shadow-sm overflow-hidden">
+                <div class="px-6 py-4 border-b bg-slate-50/50">
+                    <span class="text-xs font-black text-slate-400 uppercase">Team Members</span>
+                </div>
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 border-b">
+                        <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <th class="p-5">Username</th>
+                            <th class="p-5">Role</th>
+                            <th class="p-5 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-list" class="divide-y divide-slate-50 font-bold"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- Bulk Actions Bar -->
+    <div id="bulk-bar" class="hidden fixed bottom-8 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-xl p-4 px-8 rounded-full shadow-2xl border border-indigo-100 flex items-center gap-6 z-50">
+        <span class="font-black text-indigo-600 text-sm"><span id="sel-count">0</span> selected</span>
+        <div class="flex items-center gap-2">
+            <select id="bulk-target" class="p-2 border rounded-xl text-xs font-bold bg-white outline-none max-w-[160px]"></select>
+            <button onclick="executeBulk()"   class="bg-indigo-600 text-white px-5 py-2 rounded-xl font-bold text-xs hover:bg-indigo-700 transition-colors">Assign</button>
+            <button onclick="executeDelete()" class="bg-rose-500 text-white px-5 py-2 rounded-xl font-bold text-xs hover:bg-rose-600 transition-colors">Delete</button>
+        </div>
+        <button onclick="deselectAll()" class="text-slate-300 hover:text-red-500 transition-colors"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-8 right-6 bg-slate-900 text-white px-5 py-3 rounded-2xl font-black text-sm shadow-2xl z-50">
+        <i class="fas fa-check-circle mr-2 text-emerald-400"></i><span id="toast-msg"></span>
+    </div>
+
+    <script>
+    const API = "/api";
+    const PAGE_SIZE = 50;
+
+    // Guard
+    const adminUser = localStorage.getItem('crm_user');
+    const adminRole = localStorage.getItem('crm_role');
+    if (!adminUser || !['admin','super_admin'].includes(adminRole)) {
+        localStorage.clear(); window.location.href = '/';
+    }
+    document.getElementById('admin-name').innerText = adminUser;
+
+    // ── State ──────────────────────────────────────
+    let selected      = new Set();
+    let currentPage   = 1;
+    let hasMore       = false;
+    let currentStaff  = null;
+    let activeChart   = null;
+
+    // ── Init ───────────────────────────────────────
+    async function init() {
+        document.getElementById('dd-date').valueAsDate = new Date();
+        await Promise.all([loadMetadata(), loadStaffList(), refreshStats()]);
+        loadLeads(1);
+    }
+
+    // ── Toast ──────────────────────────────────────
+    function toast(msg, ok=true) {
+        const t = document.getElementById('toast');
+        const i = t.querySelector('i');
+        i.className = `fas ${ok ? 'fa-check-circle text-emerald-400' : 'fa-exclamation-circle text-rose-400'} mr-2`;
+        document.getElementById('toast-msg').innerText = msg;
+        t.classList.remove('hidden'); t.style.opacity = '1';
+        setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.classList.add('hidden'),300); }, 2500);
+    }
+
+    // ── Global error handler for fetch ────────────
+    async function apiFetch(url, opts={}) {
+        try {
+            const res  = await fetch(url, opts);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            return data;
+        } catch(e) {
+            toast(e.message || 'Network error', false);
+            throw e;
+        }
+    }
+
+    // ── Stats ──────────────────────────────────────
+    async function refreshStats() {
+        try {
+            const d = await apiFetch(`${API}/stats`);
+            document.getElementById('stat-total').innerText = d.total ?? '—';
+            document.getElementById('stat-new').innerText   = d.new   ?? '—';
+            document.getElementById('stat-res').innerText   = d.no_phone ?? '—';
+            document.getElementById('stat-done').innerText  = d.called  ?? '—';
+        } catch(e) {}
+    }
+
+    // ── Filters metadata ──────────────────────────
+    // Maps raw keyword → main category label
+    const CAT_MAP = {
+        'salon':'Salon','unisex salon':'Salon','luxury salon':'Salon',
+        'men\'s grooming salon':'Salon','men grooming salon':'Salon',
+        'hair studio':'Salon','luxury beauty parlour':'Salon','beauty parlour':'Salon',
+        'bridal makeup':'Salon','bridal makeup artist':'Salon','makeup artist studio':'Salon',
+        'nail spa':'Salon','body spa and wellness':'Spa & Wellness',
+        'skin and aesthetic clinic':'Doctor','general physician clinic':'Doctor',
+        'doctor':'Doctor','clinic':'Doctor','physician':'Doctor',
+        'appliance':'Appliance','appliance repair':'Appliance','electronics':'Appliance',
+    };
+    function normalizeCategory(raw) {
+        if (!raw) return null;
+        const key = raw.toLowerCase().trim();
+        for (const [k,v] of Object.entries(CAT_MAP)) {
+            if (key.includes(k)) return v;
+        }
+        // Return capitalized first word as fallback main category
+        return raw.split(' ').slice(0,2).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+    }
+
+    // State → [cities] groupings
+    const AREA_GROUPS = {
+        'Maharashtra': ['Mumbai',
+            'Andheri East','Andheri West','Bandra West','Bandra East',
+            'Borivali West','Borivali East','Kandivali West','Kandivali East',
+            'Malad West','Malad East','Goregaon West','Goregaon East',
+            'Juhu','Vile Parle West','Vile Parle East','Santacruz West','Santacruz East',
+            'Khar West','Powai','Chandivali','Ghatkopar West','Ghatkopar East',
+            'Mulund West','Mulund East','Bhandup West','Chembur','Kurla West',
+            'Sion','Matunga','Dadar West','Dadar East','Prabhadevi','Worli',
+            'Lower Parel','Mahalakshmi','Byculla','Mazgaon','Colaba','Cuffe Parade',
+            'Nariman Point','Fort','Churchgate','Marine Lines','Girgaon',
+            'Malabar Hill','Breach Candy','Tardeo','Parel','Lalbaug','Wadala',
+            'Sewri','Dharavi','Govandi','Mankhurd','Vikhroli','Kanjurmarg',
+            'Dahisar West','Dahisar East',
+            'Thane','Navi Mumbai','Pune','Nagpur','Nashik','Aurangabad'],
+        'Rajasthan': ['Jaipur','Jodhpur','Udaipur','Kota','Ajmer','Chitrakoot','Bikaner'],
+        'Delhi NCR': ['New Delhi','Delhi','Gurgaon','Noida','Faridabad','Ghaziabad'],
+        'Gujarat': ['Ahmedabad','Surat','Vadodara','Rajkot'],
+        'Karnataka': ['Bangalore','Mysore','Hubli'],
+        'Tamil Nadu': ['Chennai','Coimbatore','Madurai'],
+        'Telangana': ['Hyderabad','Secunderabad','Warangal'],
+    };
+
+    async function loadMetadata() {
+        try {
+            const d = await apiFetch(`${API}/admin/lead-filters`);
+
+            // ── Area: show only STATE names in dropdown ──
+            // Build a lookup: city (lowercase) → state
+            const cityToState = {};
+            for (const [state, cities] of Object.entries(AREA_GROUPS)) {
+                cities.forEach(c => cityToState[c.toLowerCase()] = state);
+            }
+
+            // Find which states have data
+            const activeStates = new Set();
+            const ungrouped = [];
+            d.areas.forEach(a => {
+                const state = cityToState[a.toLowerCase()];
+                if (state) activeStates.add(state);
+                else ungrouped.push(a);
+            });
+
+            // Build dropdown: one option per STATE (not per city)
+            let areaHtml = '<option value="">All Areas</option>';
+            for (const state of Object.keys(AREA_GROUPS)) {
+                if (activeStates.has(state)) {
+                    areaHtml += `<option value="__state__${state}">${state}</option>`;
+                }
+            }
+            if (ungrouped.length) {
+                areaHtml += `<optgroup label="— Other —">`;
+                ungrouped.sort().forEach(c => { areaHtml += `<option value="${c}">${c}</option>`; });
+                areaHtml += `</optgroup>`;
+            }
+            document.getElementById('f-area').innerHTML = areaHtml;
+
+            // Store area→cities mapping for filter expansion
+            window._cityToState = cityToState;
+            window._areaData    = d.areas; // all raw cities from DB
+
+            // ── Category: deduplicate to main categories ──
+            const mainCats = new Set();
+            const rawCatMap = {}; // mainCat → [raw keywords that map to it]
+            d.categories.forEach(c => {
+                const main = normalizeCategory(c);
+                if (main) {
+                    mainCats.add(main);
+                    if (!rawCatMap[main]) rawCatMap[main] = [];
+                    rawCatMap[main].push(c);
+                }
+            });
+            // Store mapping for filter use
+            window._catMap = rawCatMap;
+
+            document.getElementById('f-cat').innerHTML =
+                `<option value="">All Categories</option>` +
+                [...mainCats].sort().map(c => `<option value="${c}">${c}</option>`).join('');
+        } catch(e) { console.error('loadMetadata', e); }
+    }
+
+    // ── Lead Pool (server-side paginated) ─────────
+    async function loadLeads(page=1) {
+        const spinner = document.getElementById('leads-spinner');
+        const label   = document.getElementById('leads-count-label');
+        spinner.classList.remove('hidden');
+
+        const areaVal  = document.getElementById('f-area').value;
+        const mainCat  = document.getElementById('f-cat').value;
+        const ph       = document.getElementById('f-phone').value;
+
+        // Resolve category raw keyword(s)
+        let cat = mainCat;
+        if (mainCat && window._catMap && window._catMap[mainCat]) {
+            const raws = window._catMap[mainCat];
+            cat = raws.length === 1 ? raws[0] : '';
+        }
+
+        // Resolve area: if a state was selected, expand to all its cities
+        let areaCities = ['']; // [''] means "all areas"
+        if (areaVal.startsWith('__state__')) {
+            const stateName = areaVal.replace('__state__', '');
+            const allCities = window._areaData || [];
+            const stateCities = (AREA_GROUPS[stateName] || []).map(c => c.toLowerCase());
+            areaCities = allCities.filter(c => stateCities.includes(c.toLowerCase()));
+            if (!areaCities.length) areaCities = [''];
+        } else if (areaVal) {
+            areaCities = [areaVal];
+        }
+
+        try {
+            // If multiple cities, fetch each and merge (cap at first 3 pages worth)
+            let allLeads = [];
+            let fetchHasMore = false;
+
+            for (const city of areaCities) {
+                const url = `${API}/admin/all-leads?area=${encodeURIComponent(city)}&category=${encodeURIComponent(cat)}&has_phone=${ph}&page=${page}`;
+                const d = await apiFetch(url);
+                allLeads = allLeads.concat(d.leads || []);
+                if (d.has_more) fetchHasMore = true;
+                currentPage = d.page;
+            }
+            hasMore = fetchHasMore;
+
+            // Client-side category filter if main cat maps to multiple raw keywords
+            let leads = allLeads;
+            if (mainCat && window._catMap && window._catMap[mainCat] && window._catMap[mainCat].length > 1) {
+                const raws = new Set(window._catMap[mainCat].map(r => r.toLowerCase()));
+                leads = leads.filter(l => raws.has((l.keyword||'').toLowerCase()));
+            }
+
+            // ── Render rows ──
+            const rows = leads.map(l => `
+                <tr class="hover:bg-slate-50/60 transition-colors">
+                    <td class="p-5">
+                        <input type="checkbox" class="l-check w-4 h-4" value="${l.id}"
+                            onchange="updateSel(this)" ${selected.has(l.id)?'checked':''}>
+                    </td>
+                    <td class="p-4">
+                        <div class="font-black text-slate-800">${escHtml(l.name||'—')}</div>
+                        <div class="flex gap-1 mt-1 flex-wrap">
+                            <span class="text-[8px] bg-slate-100 text-slate-500 font-black px-2 py-0.5 rounded uppercase">${escHtml(l.keyword||'—')}</span>
+                            <span class="text-[8px] bg-indigo-50 text-indigo-500 font-black px-2 py-0.5 rounded uppercase">${escHtml(l.area||'—')}</span>
+                            ${l.is_researched?'<span class="text-[8px] bg-purple-100 text-purple-600 font-black px-2 py-0.5 rounded uppercase">✓ Researched</span>':''}
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <span class="text-xs font-black ${l.phone && l.phone!=='NO' ? 'text-slate-800' : 'text-rose-400'}">
+                            ${escHtml(l.phone||'NO PHONE')}
+                        </span>
+                    </td>
+                    <td class="p-4 text-indigo-600 text-[10px] font-black uppercase">${escHtml(l.assigned_to||'—')}</td>
+                    <td class="p-4">
+                        <span class="text-[9px] bg-slate-100 px-2 py-1 rounded-lg uppercase font-black">${escHtml(l.status)}</span>
+                    </td>
+                    <td class="p-4">
+                        ${(l.link || l.gmb_link)
+                            ? `<a href="${escHtml(l.link || l.gmb_link)}" target="_blank" rel="noopener"
+                                class="bg-slate-900 text-white px-3 py-1.5 rounded-lg font-black text-[9px] hover:bg-indigo-700 transition-colors inline-flex items-center gap-1">
+                                <i class="fab fa-google"></i> GMB
+                              </a>`
+                            : '<span class="text-slate-200 text-[9px]">—</span>'}
+                    </td>
+                </tr>`).join('');
+
+            document.getElementById('lead-list').innerHTML = rows ||
+                '<tr><td colspan="6" class="p-12 text-center text-slate-300 font-bold uppercase text-sm">No leads found for this filter</td></tr>';
+
+            const shownCount = leads.length;
+            const totalLabel = ph === 'no'
+                ? `Page ${currentPage} • ${shownCount} shown${hasMore ? ' (more pages)' : ''}`
+                : `Page ${currentPage} • ${shownCount} of ${PAGE_SIZE} shown`;
+            label.innerText = totalLabel;
+            document.getElementById('page-label').innerText = `Page ${currentPage}`;
+            document.getElementById('btn-prev').disabled = currentPage <= 1;
+            document.getElementById('btn-next').disabled = !hasMore;
+            document.getElementById('select-all-cb').checked = false;
+
+        } catch(e) {
+            label.innerText = 'Error loading leads';
+        }
+        spinner.classList.add('hidden');
+    }
+
+    // ── Interested Pipeline ───────────────────────
+    async function loadInterestedPipeline() {
+        try {
+            const d = await apiFetch(`${API}/admin/interested-leads`);
+            document.getElementById('interested-list').innerHTML = d.map(l => `
+                <tr class="hover:bg-slate-50/50">
+                    <td class="p-5">
+                        <div class="font-black">${escHtml(l.name||'—')}</div>
+                        <span class="text-[9px] text-indigo-500 font-black uppercase">${escHtml(l.assigned_to||'—')}</span>
+                    </td>
+                    <td class="p-5 text-xs text-slate-500 italic max-w-xs">"${escHtml(l.remarks||'—')}"</td>
+                    <td class="p-5">
+                        <textarea onblur="updatePipe('${l.id}',null,this.value)"
+                            class="w-full p-2 bg-slate-50 border rounded-lg text-xs resize-none"
+                            rows="2" placeholder="Admin note...">${escHtml(l.admin_remarks||'')}</textarea>
+                    </td>
+                    <td class="p-5">
+                        <select onchange="updatePipe('${l.id}',this.value,null)"
+                            class="p-2 border rounded-lg text-xs font-black outline-none">
+                            ${['Interested','Processing','Converted','Closed'].map(s=>
+                                `<option ${l.pipeline_status===s?'selected':''} value="${s}">${s}</option>`
+                            ).join('')}
+                        </select>
+                    </td>
+                </tr>`).join('') ||
+                '<tr><td colspan="4" class="p-12 text-center text-slate-300 font-bold">No interested leads yet</td></tr>';
+        } catch(e) {}
+    }
+
+    async function updatePipe(id, s, r) {
+        try {
+            await apiFetch(`${API}/admin/update-pipeline`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({id, pipeline_status:s, admin_remarks:r})
+            });
+            if (s) toast("Pipeline updated");
+        } catch(e) {}
+    }
+
+    // ── Staff Summary ─────────────────────────────
+    async function loadStaffSummary() {
+        try {
+            const [d, transferStats, pendingCounts] = await Promise.all([
+                apiFetch(`${API}/admin/staff-summary`),
+                apiFetch(`${API}/admin/transfer-stats`),
+                apiFetch(`${API}/admin/staff-pending-counts`)
+            ]);
+            document.getElementById('live-staff-grid').innerHTML =
+                Object.entries(d).map(([n,s]) => {
+                    const transfers = transferStats[n] ? transferStats[n].total : 0;
+                    const pending   = pendingCounts[n] || 0;
+                    return `
+                    <div onclick="openStaffDetail('${n}')"
+                        class="bg-white p-6 rounded-[2rem] border shadow-sm cursor-pointer hover:shadow-lg hover:border-indigo-200 transition-all group animate-in">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="font-black text-lg text-slate-800">${escHtml(n)}</h4>
+                            <span class="text-[9px] font-black px-2 py-1 rounded-full uppercase ${s.role==='telecaller'?'bg-indigo-100 text-indigo-600':'bg-purple-100 text-purple-600'}">${s.role}</span>
+                        </div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase mb-4">
+                            Live: <span class="text-emerald-500">${escHtml(s.live_status)}</span>
+                        </p>
+                        <div class="grid grid-cols-4 gap-2">
+                            <div class="bg-slate-50 p-3 rounded-2xl text-center">
+                                <p class="text-[8px] font-bold text-slate-400 uppercase">Today</p>
+                                <p class="font-black text-xl text-indigo-600">${s.today_calls}</p>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-2xl text-center">
+                                <p class="text-[8px] font-bold text-slate-400 uppercase">Research</p>
+                                <p class="font-black text-xl text-purple-600">${s.today_research||0}</p>
+                            </div>
+                            <div class="bg-amber-50 p-3 rounded-2xl text-center border border-amber-100">
+                                <p class="text-[8px] font-bold text-amber-600 uppercase">Pending</p>
+                                <p class="font-black text-xl text-amber-600">${pending}</p>
+                            </div>
+                            <div class="bg-emerald-50 p-3 rounded-2xl text-center border border-emerald-100">
+                                <p class="text-[8px] font-bold text-emerald-600 uppercase">Sent</p>
+                                <p class="font-black text-xl text-emerald-600">${transfers}</p>
+                            </div>
+                        </div>
+                        <p class="text-center text-[9px] text-indigo-400 font-black mt-3 opacity-0 group-hover:opacity-100 transition-opacity uppercase">
+                            Click for full report →
+                        </p>
+                    </div>`}).join('') ||
+                '<p class="col-span-3 text-center text-slate-300 font-bold p-20">No staff found</p>';
+        } catch(e) { console.error('loadStaffSummary', e); }
+    }
+
+    async function openStaffDetail(name) {
+        currentStaff = name;
+        const date_  = document.getElementById('dd-date').value;
+        try {
+            const [d, transferData] = await Promise.all([
+                apiFetch(`${API}/admin/staff-full-stats?user=${name}&date=${date_}`),
+                apiFetch(`${API}/admin/transfer-stats`)
+            ]);
+            document.getElementById('detail-user-name').innerText = name;
+            document.getElementById('shift-start').innerText = `Login: ${d.login||'—'}`;
+            document.getElementById('shift-end').innerText   = `Logout: ${d.logout||'—'}`;
+            document.getElementById('m-calls').innerText     = d.stats.m_calls    || 0;
+            document.getElementById('m-interest').innerText  = d.stats.m_int      || 0;
+            document.getElementById('life-calls').innerText  = d.stats.life_calls || 0;
+            document.getElementById('life-done').innerText   = d.stats.life_completed || 0;
+
+            // Transfer stats
+            const tData = transferData[name] || {total:0, leads:[]};
+            document.getElementById('transfer-count').innerText = tData.total;
+            document.getElementById('transferred-count-badge').innerText = tData.total;
+
+            document.getElementById('transferred-list').innerHTML = tData.leads.length
+                ? tData.leads.map((l,i) => `
+                    <tr class="hover:bg-teal-50/30 transition-colors">
+                        <td class="p-4 text-center text-slate-300 font-bold">${i+1}</td>
+                        <td class="p-4 font-black text-slate-800">${escHtml(l.name)}</td>
+                        <td class="p-4 text-slate-600 font-bold">${escHtml(l.phone)}</td>
+                        <td class="p-4 text-[10px] font-black text-indigo-500">${escHtml(l.date)}</td>
+                        <td class="p-4 text-xs italic text-slate-500 max-w-xs">${escHtml(l.remark||'—')}</td>
+                    </tr>`).join('')
+                : '<tr><td colspan="5" class="p-10 text-center text-slate-300 font-bold uppercase text-xs">No leads transferred yet</td></tr>';
+
+            document.getElementById('detail-timeline-body').innerHTML =
+                d.timeline.map((c,i) => `
+                    <tr class="hover:bg-indigo-50/30 transition-colors">
+                        <td class="p-4 text-center text-slate-300 font-bold">${i+1}</td>
+                        <td class="p-4 text-indigo-500 font-black text-[10px]">${c.time}</td>
+                        <td class="p-4">
+                            <div class="font-black text-slate-800">${escHtml(c.name)}</div>
+                            ${c.link && c.link !== '#'
+                                ? `<a href="${escHtml(c.link)}" target="_blank" rel="noopener" class="text-[8px] text-indigo-400 hover:text-indigo-600 hover:underline font-black uppercase">GMB ↗</a>`
+                                : '<span class="text-[8px] text-slate-200 font-black uppercase">No GMB</span>'}
+                        </td>
+                        <td class="p-4">
+                            <span class="px-2 py-0.5 rounded-lg bg-slate-100 text-[8px] uppercase font-black
+                                ${c.status==='interested'?'!bg-emerald-100 !text-emerald-700':''}">
+                                ${c.status}
+                            </span>
+                        </td>
+                        <td class="p-4 text-xs italic text-slate-500 max-w-xs">${escHtml(c.remark)}</td>
+                        <td class="p-4 text-[10px] font-black text-indigo-600 whitespace-nowrap">
+                            ${Math.floor(c.duration/60)}m ${c.duration%60}s
+                        </td>
+                    </tr>`).join('') ||
+                '<tr><td colspan="6" class="p-10 text-center text-slate-300 font-bold uppercase">No activity on this date</td></tr>';
+
+            renderChart(d.stats.daily_activity);
+            document.getElementById('staff-detail-view').classList.remove('hidden');
+        } catch(e) {}
+    }
+
+    function renderChart(data) {
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        if (activeChart) activeChart.destroy();
+        activeChart = new Chart(ctx, {
+            type:'line',
+            data:{
+                labels: data.map(d=>d.date.split('-').slice(1).join('/')),
+                datasets:[{
+                    label:'Calls', data:data.map(d=>d.calls),
+                    borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,.06)',
+                    fill:true, tension:.4, borderWidth:3, pointRadius:4,
+                    pointBackgroundColor:'#4f46e5'
+                }]
+            },
+            options:{responsive:true, plugins:{legend:{display:false}},
+                     scales:{y:{beginAtZero:true, ticks:{precision:0}}}}
+        });
+    }
+
+    function refreshCurrentStaffDetail() { if(currentStaff) openStaffDetail(currentStaff); }
+    function closeDetail() {
+        document.getElementById('staff-detail-view').classList.add('hidden');
+        currentStaff = null;
+    }
+
+    // ── Staff Management ──────────────────────────
+    async function loadStaffList() {
+        try {
+            const users = await apiFetch(`${API}/admin/users`);
+            const staff = users.filter(u => ['telecaller','researcher'].includes(u.role));
+            document.getElementById('bulk-target').innerHTML =
+                `<option value="POOL">↩ Return to Pool</option>` +
+                staff.map(u=>`<option value="${u.username}">${u.username} (${u.role})</option>`).join('');
+            document.getElementById('user-list').innerHTML = users.map(u=>`
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="p-5 font-black text-slate-800">${escHtml(u.username)}</td>
+                    <td class="p-5">
+                        <span class="text-[9px] font-black uppercase px-2 py-1 rounded-full
+                            ${u.role==='admin'||u.role==='super_admin' ? 'bg-rose-100 text-rose-600' :
+                              u.role==='researcher' ? 'bg-purple-100 text-purple-600' :
+                              'bg-indigo-100 text-indigo-600'}">
+                            ${u.role}
+                        </span>
+                    </td>
+                    <td class="p-5 text-right">
+                        <button onclick="deleteUser('${u.id}')"
+                            class="text-rose-400 hover:text-rose-600 transition-colors font-black text-xs">
+                            <i class="fas fa-trash mr-1"></i>Remove
+                        </button>
+                    </td>
+                </tr>`).join('');
+        } catch(e) {}
+    }
+
+    async function createUser() {
+        const errD = document.getElementById('staff-err');
+        const okD  = document.getElementById('staff-ok');
+        const name = document.getElementById('nu-name').value.trim();
+        const pass = document.getElementById('nu-pass').value.trim();
+        const role = document.getElementById('nu-role').value;
+        errD.classList.add('hidden'); okD.classList.add('hidden');
+
+        if (!name || !pass) {
+            errD.innerText = "Username and password are required.";
+            errD.classList.remove('hidden'); return;
+        }
+        try {
+            await apiFetch(`${API}/admin/create-user`,{
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({username:name,password:pass,role})
+            });
+            document.getElementById('nu-name').value='';
+            document.getElementById('nu-pass').value='';
+            okD.innerText = `✓ ${name} created successfully.`;
+            okD.classList.remove('hidden');
+            loadStaffList();
+        } catch(e) {
+            errD.innerText = e.message || "Failed to create user.";
+            errD.classList.remove('hidden');
+        }
+    }
+
+    async function deleteUser(id) {
+        if (!confirm("Remove this staff member? This cannot be undone.")) return;
+        try {
+            await apiFetch(`${API}/admin/delete-user/${id}`,{method:'DELETE'});
+            toast("Staff member removed");
+            loadStaffList();
+        } catch(e) {}
+    }
+
+    // ── Selection & Bulk ──────────────────────────
+    function updateSel(cb) { cb.checked ? selected.add(cb.value) : selected.delete(cb.value); refreshBulkBar(); }
+    function toggleAll(c) {
+        document.querySelectorAll('.l-check').forEach(x=>{
+            x.checked=c; c?selected.add(x.value):selected.delete(x.value);
+        }); refreshBulkBar();
+    }
+    function refreshBulkBar() {
+        document.getElementById('sel-count').innerText = selected.size;
+        document.getElementById('bulk-bar').classList.toggle('hidden', selected.size===0);
+    }
+    async function executeBulk() {
+        if (!selected.size) return;
+        try {
+            const res = await apiFetch(`${API}/admin/bulk-assign`,{
+                method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({lead_ids:Array.from(selected),target_user:document.getElementById('bulk-target').value})
+            });
+            toast(`${res.updated} leads updated`);
+            deselectAll();
+        } catch(e) {}
+    }
+    async function executeDelete() {
+        if (!selected.size) return;
+        if (!confirm(`Permanently delete ${selected.size} lead(s)?`)) return;
+        try {
+            const res = await apiFetch(`${API}/admin/bulk-delete`,{
+                method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({lead_ids:Array.from(selected)})
+            });
+            toast(`${res.deleted} leads deleted`);
+            deselectAll();
+        } catch(e) {}
+    }
+    function deselectAll() { selected.clear(); refreshBulkBar(); refreshStats(); loadLeads(currentPage); }
+
+    // ── Tab switching ─────────────────────────────
+    function switchTab(t) {
+        ['leads','interested','insights','staff'].forEach(x=>{
+            document.getElementById(`tab-${x}`).classList.add('hidden');
+            document.getElementById(`btn-${x}`).classList.remove('active');
+        });
+        document.getElementById(`tab-${t}`).classList.remove('hidden');
+        document.getElementById(`btn-${t}`).classList.add('active');
+        if (t==='insights')   loadStaffSummary();
+        if (t==='interested') loadInterestedPipeline();
+        if (t==='leads')      loadLeads(currentPage);
+    }
+
+    // ── Helpers ───────────────────────────────────
+    function escHtml(s) {
+        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function logout() { localStorage.clear(); location.href='/'; }
+
+    init();
+    </script>
+</body>
+</html>

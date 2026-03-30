@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workstream - Telecaller Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { font-family:'Plus Jakarta Sans',sans-serif; background:#f8fafc; }
+        .tab-active { color:#4f46e5; border-bottom:3px solid #4f46e5; }
+        .animate-in { animation:fadeUp .35s ease-out; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .outcome-btn { width:100%; padding:1rem; border-radius:1rem; font-weight:800;
+                       text-align:left; display:flex; justify-content:space-between; align-items:center;
+                       transition:all .15s; }
+        .outcome-btn:active { transform:scale(.98); }
+    </style>
+</head>
+<body class="min-h-screen text-slate-900 pb-20">
+
+    <nav class="bg-white border-b border-slate-200 p-4 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg"><i class="fas fa-headset"></i></div>
+                <span class="font-black text-xl tracking-tight uppercase">Tele<span class="text-indigo-600">Work</span></span>
+            </div>
+            <div class="flex items-center gap-6">
+                <div id="session-info" class="hidden flex-col items-end">
+                    <span id="display-user" class="font-bold text-slate-800 text-sm">—</span>
+                    <span id="session-timer" class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Active: 00:00:00</span>
+                </div>
+                <button onclick="logout()" class="text-slate-400 hover:text-red-500 transition-colors">
+                    <i class="fas fa-power-off text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto p-6 md:p-10">
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="bg-white p-16 rounded-[3rem] shadow-xl text-center border border-slate-100 animate-in">
+            <div class="bg-indigo-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8">
+                <i class="fas fa-play text-indigo-600 text-4xl ml-2"></i>
+            </div>
+            <h2 class="text-4xl font-black text-slate-800 mb-3">Start Calling Session</h2>
+            <p class="text-slate-500 mb-10 font-medium max-w-xs mx-auto">Leads will load automatically after you clock in.</p>
+            <button onclick="startShift()"
+                class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-16 py-6 rounded-3xl font-black text-xl shadow-2xl shadow-indigo-200 transition-all">
+                <i class="fas fa-clock mr-2"></i>Clock In & Begin
+            </button>
+        </div>
+
+        <!-- Workspace -->
+        <div id="workspace" class="hidden space-y-8">
+            <div class="flex gap-8 border-b border-slate-200 px-1">
+                <button onclick="switchView('calling')"   id="btn-calling"   class="pb-4 font-black text-xs uppercase tracking-widest tab-active">Current Lead</button>
+                <button onclick="switchView('callbacks')" id="btn-callbacks" class="pb-4 font-black text-xs uppercase tracking-widest text-slate-400">Callbacks</button>
+                <button onclick="switchView('assigned')"  id="btn-assigned"  class="pb-4 font-black text-xs uppercase tracking-widest text-slate-400">
+                    Assigned Leads <span id="assigned-badge" class="hidden ml-1 bg-indigo-100 text-indigo-600 text-[9px] font-black px-2 py-0.5 rounded-full">0</span>
+                </button>
+            </div>
+
+            <!-- Calling View -->
+            <div id="view-calling" class="animate-in space-y-6">
+
+                <!-- Error banner (shown on submit failure) -->
+                <div id="submit-error" class="hidden bg-rose-50 border border-rose-200 text-rose-700 text-sm font-bold px-5 py-3 rounded-2xl flex items-center justify-between">
+                    <span><i class="fas fa-exclamation-triangle mr-2"></i><span id="submit-error-text"></span></span>
+                    <button onclick="document.getElementById('submit-error').classList.add('hidden')" class="text-rose-400 hover:text-rose-600">✕</button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Lead Card -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 border-t-[10px] border-t-indigo-600">
+                            <div class="flex justify-between items-start gap-4 mb-8">
+                                <div>
+                                    <span id="lead-badge" class="bg-indigo-100 text-indigo-700 text-[10px] font-black px-3 py-1 rounded-full uppercase mb-3 inline-block">
+                                        GMB Scraped Number
+                                    </span>
+                                    <h2 id="lead-name" class="text-4xl font-black text-slate-900 leading-tight">Loading...</h2>
+                                </div>
+                                <div class="bg-rose-50 text-rose-600 px-5 py-3 rounded-2xl font-mono text-2xl font-black border border-rose-100 flex items-center gap-2 shrink-0">
+                                    <i class="fas fa-stopwatch text-lg"></i>
+                                    <span id="call-timer">00:00</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                                <div class="p-5 bg-slate-50 rounded-3xl border border-slate-100">
+                                    <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Contact Number</p>
+                                    <p id="lead-phone" class="text-2xl font-black text-slate-800">—</p>
+                                </div>
+                                <div class="p-5 bg-slate-50 rounded-3xl border border-slate-100">
+                                    <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Category / Area</p>
+                                    <p id="lead-info"  class="text-sm font-bold text-indigo-600">—</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                <a id="lead-gmb"  href="#" target="_blank"
+                                    class="flex-1 bg-slate-900 text-white font-black py-5 rounded-2xl text-center flex items-center justify-center gap-2 hover:bg-black transition-colors">
+                                    <i class="fab fa-google"></i> View GMB
+                                </a>
+                                <a id="lead-dial" href="#"
+                                    class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-5 rounded-2xl text-center shadow-lg flex items-center justify-center gap-2 transition-colors">
+                                    <i class="fas fa-phone-alt"></i> Dial
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
+                            <h3 class="font-black text-slate-400 mb-3 uppercase text-[10px] tracking-widest">Call Remarks</h3>
+                            <textarea id="remarks"
+                                class="w-full h-28 p-5 bg-slate-50 border border-slate-200 rounded-3xl outline-none text-slate-700 font-bold text-lg resize-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-50 transition-all"
+                                placeholder="Customer response, key notes..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Outcome Panel -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-white p-7 rounded-[2.5rem] shadow-sm border border-slate-100 sticky top-24 space-y-3">
+                            <h3 class="font-black text-slate-700 mb-5 uppercase text-center text-[10px] tracking-widest">Confirm Outcome</h3>
+
+                            <button onclick="submitOutcome('interested')"
+                                class="outcome-btn bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100">
+                                Interested <i class="fas fa-star"></i>
+                            </button>
+
+                            <div class="bg-amber-50 p-4 rounded-2xl border border-amber-100 space-y-2">
+                                <p class="text-[10px] font-black text-amber-700 uppercase">Schedule Callback</p>
+                                <input type="datetime-local" id="cb-time"
+                                    class="w-full p-2 rounded-lg border border-amber-200 text-xs font-bold bg-white outline-none">
+                                <button onclick="submitOutcome('callback')"
+                                    class="w-full p-2 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-lg text-xs transition-colors">
+                                    Set Callback
+                                </button>
+                            </div>
+
+                            <div class="border-t border-slate-100 pt-3 space-y-2">
+                                <button onclick="submitOutcome('not_picked')"
+                                    class="outcome-btn bg-slate-50 text-slate-600 hover:bg-slate-100">
+                                    Not Picked <i class="fas fa-phone-slash"></i>
+                                </button>
+                                <button onclick="submitOutcome('busy')"
+                                    class="outcome-btn bg-slate-50 text-slate-600 hover:bg-slate-100">
+                                    Busy / Refused <i class="fas fa-minus-circle"></i>
+                                </button>
+                                <button onclick="submitOutcome('not_interested')"
+                                    class="outcome-btn bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100">
+                                    Not Interested <i class="fas fa-ban"></i>
+                                </button>
+                            </div>
+
+                            <div class="border-t border-slate-100 pt-2">
+                                <button onclick="skipLead()"
+                                    class="w-full py-3 text-slate-400 hover:text-slate-600 font-bold text-xs text-center transition-colors rounded-xl hover:bg-slate-50">
+                                    <i class="fas fa-forward mr-1"></i>Skip (return to pool)
+                                </button>
+                            </div>
+
+                            <!-- Submitting indicator -->
+                            <div id="submitting" class="hidden text-center py-2">
+                                <i class="fas fa-spinner fa-spin text-indigo-500 mr-2"></i>
+                                <span class="text-xs font-bold text-slate-400">Submitting...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Callbacks View -->
+            <div id="view-callbacks" class="hidden animate-in">
+                <div class="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden">
+                    <div class="p-7 bg-slate-50 border-b flex justify-between items-center">
+                        <h3 class="font-black text-slate-800 uppercase text-xs tracking-widest">Pending Follow-ups</h3>
+                        <button onclick="loadCallbacks()" class="text-indigo-600 font-black text-xs uppercase hover:text-indigo-800">
+                            <i class="fas fa-sync mr-1"></i>Refresh
+                        </button>
+                    </div>
+                    <div id="callback-list" class="divide-y divide-slate-100"></div>
+                </div>
+            </div>
+
+            <!-- Assigned Leads View -->
+            <div id="view-assigned" class="hidden animate-in space-y-4">
+                <div class="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden">
+                    <div class="p-7 bg-slate-50 border-b flex justify-between items-center flex-wrap gap-3">
+                        <div>
+                            <h3 class="font-black text-slate-800 uppercase text-xs tracking-widest">My Assigned Leads</h3>
+                            <p class="text-[10px] text-slate-400 font-bold mt-1">Active leads currently pending your action (completed leads are excluded)</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <select id="assigned-filter" onchange="renderAssigned()" class="p-2 bg-white border rounded-xl text-xs font-bold outline-none">
+                                <option value="all">All Active</option>
+                                <option value="new">New</option>
+                                <option value="calling">Calling</option>
+                                <option value="callback">Callback</option>
+                            </select>
+                            <button onclick="loadAssignedLeads()" class="text-indigo-600 font-black text-xs uppercase hover:text-indigo-800">
+                                <i class="fas fa-sync mr-1"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary pills -->
+                    <div id="assigned-summary" class="flex flex-wrap gap-3 px-7 py-4 border-b bg-white"></div>
+
+                    <!-- Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm font-bold">
+                            <thead class="bg-slate-50 border-b">
+                                <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    <th class="p-4">#</th>
+                                    <th class="p-4">Business</th>
+                                    <th class="p-4">Phone</th>
+                                    <th class="p-4">Status</th>
+                                    <th class="p-4">Disposition</th>
+                                    <th class="p-4">Remarks</th>
+                                    <th class="p-4">Last Updated</th>
+                                    <th class="p-4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assigned-list" class="divide-y divide-slate-50"></tbody>
+                        </table>
+                    </div>
+                    <div id="assigned-empty" class="hidden p-16 text-center">
+                        <div class="bg-amber-50 border border-amber-200 rounded-[2rem] p-10 max-w-sm mx-auto">
+                            <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-user-clock text-amber-500 text-2xl"></i>
+                            </div>
+                            <h4 class="font-black text-slate-800 text-lg mb-2">No Leads Assigned</h4>
+                            <p class="text-sm text-slate-500 font-medium mb-1">You have no active leads assigned to you right now.</p>
+                            <p class="text-xs text-amber-700 font-black uppercase tracking-wide mt-3">
+                                <i class="fas fa-info-circle mr-1"></i>Please contact your owner / admin to assign leads
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    const API  = "/api";
+    const user = localStorage.getItem('crm_user');
+    const role = localStorage.getItem('crm_role');
+
+    if (!user || role !== 'telecaller') { localStorage.clear(); window.location.href='/'; }
+    document.getElementById('display-user').innerText = user;
+
+    let shiftStart=null, callSecs=0, shiftTimer=null, callTimer=null;
+    let currentLead=null, isSubmitting=false, allAssignedLeads=[];
+
+    // ── Session restore ───────────────────────────
+    window.onload = () => {
+        const saved = localStorage.getItem('crm_shift_start');
+        if (saved) { shiftStart = new Date(parseInt(saved)); resumeSession(); }
+    };
+
+    function startShift() {
+        shiftStart = new Date();
+        localStorage.setItem('crm_shift_start', shiftStart.getTime());
+        resumeSession();
+    }
+
+    function resumeSession() {
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('workspace').classList.remove('hidden');
+        document.getElementById('session-info').style.display = 'flex';
+
+        shiftTimer = setInterval(() => {
+            const diff = new Date(new Date() - shiftStart);
+            const h=String(diff.getUTCHours()).padStart(2,'0');
+            const m=String(diff.getUTCMinutes()).padStart(2,'0');
+            const s=String(diff.getUTCSeconds()).padStart(2,'0');
+            document.getElementById('session-timer').innerText = `Active: ${h}:${m}:${s}`;
+        }, 1000);
+
+        fetchLead();
+        setInterval(refreshAssignedBadge, 15000);
+    }
+
+    // ── Badge refresh ─────────────────────────────
+    // Only counts leads OTHER than the one currently on screen.
+    // Badge hides when 0 so it never confusingly shows "1" for the current lead.
+    async function refreshAssignedBadge() {
+        try {
+            const res  = await fetch(`${API}/caller-assigned-leads?caller=${user}`);
+            const data = await res.json();
+            if (!res.ok) return;
+
+            const currentId = currentLead ? currentLead.id : null;
+            // "waiting" = active leads the caller hasn't started yet (callbacks + pre-assigned new)
+            const waiting = data.filter(l => l.status !== 'completed' && l.id !== currentId);
+            const badge   = document.getElementById('assigned-badge');
+            badge.innerText = waiting.length;
+            waiting.length > 0
+                ? badge.classList.remove('hidden')
+                : badge.classList.add('hidden');
+
+            // Keep assigned-tab in sync if open
+            if (!document.getElementById('view-assigned').classList.contains('hidden')) {
+                allAssignedLeads = data.filter(l => l.status !== 'completed');
+                renderAssigned();
+            }
+        } catch(e) {}
+    }
+
+    // ── Fetch next lead ───────────────────────────
+    async function fetchLead(specificId=null, retryCount=0) {
+        showLeadLoading();
+        let url = `${API}/next-lead?caller=${user}`;
+        if (specificId) url += `&id=${specificId}`;
+
+        try {
+            const res  = await fetch(url);
+            const data = await res.json();
+
+            if (data.error === 'Queue Empty') {
+                showQueueEmpty(); return;
+            }
+            if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+
+            currentLead = data;
+            renderLead(data);
+            switchView('calling');
+            startCallTimer();
+            refreshAssignedBadge();
+
+        } catch(e) {
+            if (retryCount < 2) {
+                setTimeout(() => fetchLead(specificId, retryCount+1), 1500);
+                showError(`Network issue, retrying... (${retryCount+1}/2)`);
+            } else {
+                showQueueEmpty(true); // show error state
+            }
+        }
+    }
+
+    function showLeadLoading() {
+        document.getElementById('lead-name').innerText  = 'Loading...';
+        document.getElementById('lead-phone').innerText = '—';
+        document.getElementById('lead-info').innerText  = '—';
+        document.getElementById('lead-gmb').href        = '#';
+        document.getElementById('lead-dial').href       = '#';
+        document.getElementById('call-timer').innerText = '00:00';
+    }
+
+    function renderLead(data) {
+        document.getElementById('lead-name').innerText  = data.name || '—';
+        document.getElementById('lead-phone').innerText = data.phone || 'No Number';
+        document.getElementById('lead-info').innerText  = `${data.keyword||'General'} • ${data.area||'—'}`;
+        document.getElementById('remarks').value        = '';
+        document.getElementById('cb-time').value        = '';
+        document.getElementById('submit-error').classList.add('hidden');
+
+        // Resolve gmb_link — handle both snake_case and camelCase field names
+        const gmbUrl = data.gmb_link || data.gmbLink || '';
+        const dialUrl = data.phone && data.phone !== 'NO' ? `tel:${data.phone}` : '#';
+
+        const gmbBtn  = document.getElementById('lead-gmb');
+        const dialBtn = document.getElementById('lead-dial');
+
+        if (gmbUrl) {
+            gmbBtn.href = gmbUrl;
+            gmbBtn.onclick = null;
+            gmbBtn.className = 'flex-1 bg-slate-900 text-white font-black py-5 rounded-2xl text-center flex items-center justify-center gap-2 hover:bg-black transition-colors';
+        } else {
+            gmbBtn.href = '#';
+            gmbBtn.onclick = (e) => e.preventDefault();
+            gmbBtn.className = 'flex-1 bg-slate-200 text-slate-400 font-black py-5 rounded-2xl text-center flex items-center justify-center gap-2 cursor-not-allowed';
+        }
+
+        dialBtn.href = dialUrl;
+
+        const badge = document.getElementById('lead-badge');
+        if (data.is_researched) {
+            badge.innerText = "Agency Researched: Pitch 'number not updated'";
+            badge.className = "bg-purple-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase mb-3 inline-block animate-pulse";
+        } else {
+            badge.innerText = "GMB Scraped Number";
+            badge.className = "bg-indigo-100 text-indigo-700 text-[10px] font-black px-3 py-1 rounded-full uppercase mb-3 inline-block";
+        }
+    }
+
+    // ── Queue empty / no leads state ─────────────
+    function showQueueEmpty(isError=false) {
+        currentLead = null;
+        clearInterval(callTimer);
+        document.getElementById('call-timer').innerText = '00:00';
+        document.getElementById('lead-phone').innerText = '—';
+        document.getElementById('lead-info').innerText  = '—';
+        document.getElementById('lead-gmb').href        = '#';
+        document.getElementById('lead-dial').href       = '#';
+
+        const badge = document.getElementById('lead-badge');
+        badge.innerText = isError ? "Connection Error" : "No leads in queue";
+        badge.className = `${isError ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'} text-[10px] font-black px-3 py-1 rounded-full uppercase mb-3 inline-block`;
+
+        // Replace lead name area with a clear "contact admin" message
+        document.getElementById('lead-name').innerHTML =
+            `<span class="text-2xl font-black text-slate-400">No Leads Available</span>`;
+
+        // Show a prominent info box in the error banner area
+        document.getElementById('submit-error-text').innerHTML =
+            `<i class="fas fa-info-circle mr-1 text-amber-500"></i>
+             <span class="text-amber-700">Queue is empty. Please contact your <strong>owner / admin</strong> to assign new leads.</span>`;
+        document.getElementById('submit-error').className =
+            'bg-amber-50 border border-amber-200 text-amber-700 text-sm font-bold px-5 py-3 rounded-2xl flex items-center justify-between';
+        document.getElementById('submit-error').classList.remove('hidden');
+
+        refreshAssignedBadge();
+    }
+
+    function showError(msg) {
+        document.getElementById('submit-error-text').innerText = msg;
+        document.getElementById('submit-error').className =
+            'bg-rose-50 border border-rose-200 text-rose-700 text-sm font-bold px-5 py-3 rounded-2xl flex items-center justify-between';
+        document.getElementById('submit-error').classList.remove('hidden');
+    }
+
+    // ── Call Timer ────────────────────────────────
+    function startCallTimer() {
+        callSecs = 0; clearInterval(callTimer);
+        callTimer = setInterval(() => {
+            callSecs++;
+            document.getElementById('call-timer').innerText =
+                `${String(Math.floor(callSecs/60)).padStart(2,'0')}:${String(callSecs%60).padStart(2,'0')}`;
+        }, 1000);
+    }
+
+    // ── Submit Outcome ────────────────────────────
+    async function submitOutcome(status, retryCount=0) {
+        if (!currentLead || isSubmitting) return;
+        const remark = document.getElementById('remarks').value.trim();
+        const cbTime = document.getElementById('cb-time').value;
+
+        if (status === 'interested' && !remark) {
+            showError("Please add notes before marking as Interested."); return;
+        }
+        if (status === 'callback' && !remark) {
+            showError("Please add notes before scheduling a callback."); return;
+        }
+        if (status === 'callback' && !cbTime) {
+            showError("Please select a callback time."); return;
+        }
+
+        isSubmitting = true;
+        document.getElementById('submitting').classList.remove('hidden');
+        document.getElementById('submit-error').classList.add('hidden');
+
+        try {
+            const res = await fetch(`${API}/submit-call`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    id: currentLead.id, status, remarks: remark,
+                    duration: callSecs, caller: user, callback_time: cbTime
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+
+            clearInterval(callTimer);
+            currentLead = null;              // clear FIRST
+            await refreshAssignedBadge();    // badge sees null → counts correctly
+            fetchLead();                     // then load next
+
+        } catch(e) {
+            isSubmitting = false;
+            document.getElementById('submitting').classList.add('hidden');
+            if (retryCount < 2) {
+                setTimeout(() => submitOutcome(status, retryCount+1), 2000);
+                showError(`Submission failed, retrying... (${retryCount+1}/2)`);
+            } else {
+                showError("Submission failed after 3 attempts. Please try again.");
+            }
+            return;
+        }
+
+        isSubmitting = false;
+        document.getElementById('submitting').classList.add('hidden');
+    }
+
+    // ── Skip Lead ─────────────────────────────────
+    async function skipLead() {
+        if (!currentLead) return;
+        if (!confirm("Return this lead to the pool? No call will be logged.")) return;
+        clearInterval(callTimer);
+        try {
+            await fetch(`${API}/admin/bulk-assign`,{
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({lead_ids:[currentLead.id], target_user:'POOL'})
+            });
+        } catch(e) {}
+        currentLead = null;
+        fetchLead();
+    }
+
+    // ── Callbacks ─────────────────────────────────
+    async function loadCallbacks() {
+        try {
+            const res  = await fetch(`${API}/caller-callbacks?caller=${user}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+
+            const now = new Date();
+            data.sort((a,b) => new Date(a.callback_time) - new Date(b.callback_time));
+
+            document.getElementById('callback-list').innerHTML = data.map(l => {
+                const target  = new Date(l.callback_time);
+                const diffMs  = target - now;
+                const overdue = diffMs < 0;
+                const h = Math.floor(Math.abs(diffMs)/3600000);
+                const m = Math.floor((Math.abs(diffMs)%3600000)/60000);
+                const label = overdue ? "OVERDUE" : `${h}h ${m}m left`;
+                return `
+                    <div class="p-7 flex justify-between items-center hover:bg-indigo-50/20 transition-colors border-l-4 ${overdue?'border-l-red-500':'border-l-amber-500'}">
+                        <div>
+                            <div class="flex items-center gap-3 mb-1">
+                                <p class="font-black text-slate-800 text-lg">${escHtml(l.name)}</p>
+                                <span class="${overdue?'bg-red-600 text-white':'bg-amber-100 text-amber-700'} text-[9px] font-black px-2 py-0.5 rounded-full uppercase">${label}</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase">${escHtml(l.phone)} • ${target.toLocaleString('en-IN')}</p>
+                            <p class="text-xs text-indigo-600 font-bold mt-1">"${escHtml(l.remarks||'—')}"</p>
+                        </div>
+                        <button onclick="fetchLead('${l.id}')"
+                            class="bg-slate-900 text-white px-7 py-3 rounded-2xl font-black text-xs shadow-lg hover:bg-indigo-700 transition-colors ml-4 shrink-0">
+                            Start Call
+                        </button>
+                    </div>`;
+            }).join('') || '<p class="p-20 text-center text-slate-300 font-bold">No callbacks scheduled.</p>';
+
+        } catch(e) {
+            document.getElementById('callback-list').innerHTML =
+                '<p class="p-10 text-center text-rose-300 font-bold text-sm">Failed to load callbacks.</p>';
+        }
+    }
+
+    // ── View switching ────────────────────────────
+    function switchView(v) {
+        ['calling','callbacks','assigned'].forEach(x => {
+            document.getElementById(`view-${x}`).classList.toggle('hidden', v!==x);
+            document.getElementById(`btn-${x}`).classList.toggle('tab-active', v===x);
+            document.getElementById(`btn-${x}`).classList.toggle('text-slate-400', v!==x);
+        });
+        if (v==='callbacks') loadCallbacks();
+        if (v==='assigned')  loadAssignedLeads();
+    }
+
+    // ── Assigned Leads ────────────────────────────
+    async function loadAssignedLeads() {
+        document.getElementById('assigned-list').innerHTML =
+            '<tr><td colspan="8" class="p-10 text-center"><i class="fas fa-spinner fa-spin text-indigo-400 text-xl"></i></td></tr>';
+        document.getElementById('assigned-empty').classList.add('hidden');
+
+        try {
+            const res  = await fetch(`${API}/caller-assigned-leads?caller=${user}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+
+            allAssignedLeads = data.filter(l => l.status !== 'completed');
+
+            // Badge — exclude current lead
+            const currentId   = currentLead ? currentLead.id : null;
+            const waitingCount = allAssignedLeads.filter(l => l.id !== currentId).length;
+            const badge = document.getElementById('assigned-badge');
+            badge.innerText = waitingCount;
+            waitingCount > 0 ? badge.classList.remove('hidden') : badge.classList.add('hidden');
+
+            // Summary pills
+            const counts = {};
+            data.forEach(l => { counts[l.status] = (counts[l.status]||0)+1; });
+            const colorMap = {
+                new:'bg-blue-100 text-blue-700', calling:'bg-indigo-100 text-indigo-700',
+                callback:'bg-amber-100 text-amber-700', completed:'bg-emerald-100 text-emerald-700'
+            };
+            document.getElementById('assigned-summary').innerHTML =
+                Object.entries(counts).map(([s,c]) =>
+                    `<span class="text-[9px] font-black uppercase px-3 py-1 rounded-full ${colorMap[s]||'bg-slate-100 text-slate-500'}">${s}: ${c}</span>`
+                ).join('') +
+                `<span class="text-[9px] font-black uppercase px-3 py-1 rounded-full bg-slate-800 text-white">Total: ${data.length}</span>`;
+
+            renderAssigned();
+
+        } catch(e) {
+            document.getElementById('assigned-list').innerHTML =
+                `<tr><td colspan="8" class="p-10 text-center text-rose-300 font-bold text-sm">Failed to load leads.</td></tr>`;
+        }
+    }
+
+    function renderAssigned() {
+        const filter = document.getElementById('assigned-filter').value;
+        const leads  = filter === 'all' ? allAssignedLeads : allAssignedLeads.filter(l => l.status === filter);
+
+        if (!leads.length) {
+            document.getElementById('assigned-list').innerHTML = '';
+            document.getElementById('assigned-empty').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('assigned-empty').classList.add('hidden');
+
+        const statusColor = {
+            new:'bg-blue-100 text-blue-700', calling:'bg-indigo-100 text-indigo-700',
+            callback:'bg-amber-100 text-amber-700', completed:'bg-emerald-100 text-emerald-700'
+        };
+        const dispColor = {
+            interested:'bg-emerald-100 text-emerald-700', not_interested:'bg-rose-100 text-rose-700',
+            not_picked:'bg-slate-100 text-slate-500', busy:'bg-orange-100 text-orange-700',
+            callback:'bg-amber-100 text-amber-700', completed:'bg-teal-100 text-teal-700'
+        };
+
+        document.getElementById('assigned-list').innerHTML = leads.map((l, i) => `
+            <tr class="hover:bg-indigo-50/20 transition-colors">
+                <td class="p-4 text-slate-300 font-bold text-[10px]">${i+1}</td>
+                <td class="p-4">
+                    <div class="font-black text-slate-800">${escHtml(l.name||'—')}</div>
+                    <div class="flex gap-1 mt-1 flex-wrap">
+                        <span class="text-[8px] bg-slate-100 text-slate-500 font-black px-2 py-0.5 rounded uppercase">${escHtml(l.keyword||'—')}</span>
+                        <span class="text-[8px] bg-indigo-50 text-indigo-500 font-black px-2 py-0.5 rounded uppercase">${escHtml(l.area||'—')}</span>
+                    </div>
+                </td>
+                <td class="p-4">
+                    <span class="font-black text-sm ${l.phone && l.phone!=='NO' ? 'text-slate-800' : 'text-rose-400'}">
+                        ${escHtml(l.phone||'NO PHONE')}
+                    </span>
+                </td>
+                <td class="p-4">
+                    <span class="text-[9px] font-black uppercase px-2 py-1 rounded-lg ${statusColor[l.status]||'bg-slate-100 text-slate-500'}">${l.status}</span>
+                </td>
+                <td class="p-4">
+                    ${l.disposition
+                        ? `<span class="text-[9px] font-black uppercase px-2 py-1 rounded-lg ${dispColor[l.disposition]||'bg-slate-100 text-slate-500'}">${l.disposition}</span>`
+                        : '<span class="text-slate-200 text-[9px]">—</span>'}
+                </td>
+                <td class="p-4 text-xs text-slate-500 italic max-w-[180px] truncate">${escHtml(l.remarks||'—')}</td>
+                <td class="p-4 text-[10px] text-slate-400 font-bold whitespace-nowrap">${escHtml(l.updated_at||'—')}</td>
+                <td class="p-4">
+                        <div class="flex gap-2">
+                        ${l.status !== 'completed' ? `
+                        <button onclick="fetchLead('${l.id}')"
+                            class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-black text-[9px] uppercase hover:bg-indigo-700 transition-colors">
+                            <i class="fas fa-phone-alt mr-1"></i>Call
+                        </button>` : ''}
+                        ${(l.gmb_link || l.gmbLink || l.link) ? `
+                        <a href="${escHtml(l.gmb_link || l.gmbLink || l.link)}" target="_blank" rel="noopener"
+                            class="bg-slate-900 text-white px-3 py-1.5 rounded-lg font-black text-[9px] uppercase hover:bg-black transition-colors">
+                            <i class="fab fa-google mr-1"></i>GMB
+                        </a>` : ''}
+                    </div>
+                </td>
+            </tr>`).join('');
+    }
+
+    function escHtml(s) {
+        return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    async function logout() {
+        clearInterval(shiftTimer); clearInterval(callTimer);
+        try {
+            await fetch(`${API}/logout`,{method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({username:user})});
+        } catch(e){}
+        localStorage.clear(); window.location.href='/';
+    }
+    </script>
+</body>
+</html>
