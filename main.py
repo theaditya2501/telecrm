@@ -51,7 +51,7 @@ except Exception as e:
 
 PROJECT_ID = "telecallercrm-45ec7"
 LEADS_PATH = f"artifacts/{PROJECT_ID}/public/data/leads"
-USERS_PATH = f"artifacts/{PROJECT_ID}/public/data/users"
+USERS_PATH = "users"
 LOGS_PATH  = f"artifacts/{PROJECT_ID}/public/data/audit_logs"
 
 PAGE_SIZE = 50  # leads per page in admin panel
